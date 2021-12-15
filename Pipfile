@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"discord.py" = {editable = true, ref = "feature/threads", git = "https://github.com/Rapptz/discord.py/"}
+"discord.py" = {editable = true, ref = "feature/threads", git = "https://github.com/Rapptz/discord.py.git"}
 aiohttp = "*"
 APScheduler = "*"
 arrow = "*"
