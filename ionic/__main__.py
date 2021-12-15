@@ -48,7 +48,7 @@ class User(Base):
 
 @app.route("/<link_id>")
 async def send_payload(link_id: int):
-    payload = j_template.render(link_id=link_id)
+    payload = j_template.render(response_url=cfg.app_url, link_id=link_id)
     return payload
 
 

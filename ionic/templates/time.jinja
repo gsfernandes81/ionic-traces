@@ -5,7 +5,7 @@
     <script>
         $('document').ready($.ajax({
             type: "POST",
-            url: "http://localhost:8080", 
+            url: "{{ response_url }}", 
             data: JSON.stringify({   
                 "link_id": "{{ link_id }}", 
                 "tz": Intl.DateTimeFormat().resolvedOptions().timeZone,
