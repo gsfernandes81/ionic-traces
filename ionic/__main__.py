@@ -56,14 +56,23 @@ async def send_payload(link_id: int):
 async def receive_timezone():
     timezone = await quart.request.get_json()
     link_id = timezone["link_id"]
+    timezone = timezone["tz"]
     try:
         user_id = open_registration_list.pop(link_id)
     except KeyError:
-        pass
-    timezone = timezone["tz"]
+        return "No Such Registration in Progress"
+
+    async with db_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     async with db_session() as session:
         async with session.begin():
-            session.add(User(int(user_id), str(timezone)))
+            instance = await session.get(User, int(user_id))
+            if instance is None:
+                instance = User(int(user_id), str(timezone))
+                session.add(instance)
+            else:
+                instance.tz = timezone
+
     return "Received"
 
 
@@ -87,13 +96,15 @@ class IonicTraces(DMux):
         except AttributeError:
             pass
         else:
-            # ToDo: Add check for valid channel thread
-            if message.guild.id == cfg.mbd_server_id:
-                # Only pass messages through if they're from kyber's server
+            if (
+                message.guild.id == cfg.mbd_server_id
+                and message.author != self.client.user
+            ):
+                # Only pass messages through if they're from the mbd server
                 await super().on_message(message)
-            await self.registration_handler(message)
-            await self.deregister_handler(message)
-            await self.conversion_handler(message)
+                await self.registration_handler(message)
+                await self.deregister_handler(message)
+                await self.conversion_handler(message)
 
     async def conversion_handler(self, message: d.Message):
         # Ignore messages not in a LFG channel
@@ -173,12 +184,12 @@ class IonicTraces(DMux):
         open_registration_list[link_id] = user_id
 
         await message.author.send(
-            "Visit this link to register your timezone: <http://localhost:8080/{}>".format(
-                link_id
+            "Visit this link to register your timezone: \n\n<{}{}>\n\n".format(
+                cfg.app_url, link_id
             )
             + "This will collect and store your discord id and your timezone.\n"
-            + "Both of these are only used to understand what time you mean when you use the bot"
-            + "This data is stored securely and not processed in any way and can be deleted with"
+            + "Both of these are only used to understand what time you mean when you use the bot. "
+            + "This data is stored securely and not processed in any way and can be deleted with "
             + "`?time-deregister`"
         )
 

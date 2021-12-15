@@ -11,6 +11,14 @@ mbd_server_id: int = int(_getenv("MBD_SERVER_ID"))
 # Bot Channel ID
 bot_channel_id = int(_getenv("MBD_BOT_CHANNEL_ID"))
 
+# Registration URL
+app_url = str(_getenv("APP_URL"))
+if app_url.startswith("https"):
+    app_url = app_url[5:]
+    app_url = "http" + app_url
+if not app_url.endswith("/"):
+    app_url = app_url + "/"
+
 # Url for the bot and scheduler db
 # SQAlchemy doesn't play well with postgres://, hence we replace
 # it with postgresql://
