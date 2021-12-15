@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        $('document').ready($.ajax({
+            type: "POST",
+            url: "http://localhost:8080", 
+            data: JSON.stringify({   
+                "link_id": "{{ link_id }}", 
+                "tz": Intl.DateTimeFormat().resolvedOptions().timeZone,
+            }),
+            success: null,
+            contentType: 'application/json'
+        }))
+    </script>
+</head>
+
+<body>
+    You can close this tab.
+</body>
