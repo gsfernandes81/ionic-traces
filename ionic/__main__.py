@@ -160,6 +160,7 @@ class IonicTraces(DMux):
         # Create reply text
         reply = ":F>, <t:".join([str(time) for time in unix_time_list])
         reply = "<t:" + reply + ":F>"
+        reply = "That's " + reply + " auto-converted to local time."
         await message.reply(reply)
 
     async def registration_handler(self, message: d.Message):
