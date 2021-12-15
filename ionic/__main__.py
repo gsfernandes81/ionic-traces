@@ -25,7 +25,7 @@ db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
 
 
 config = Config()
-config.bind = ["localhost:8080"]
+config.bind = ["localhost:{}".format(cfg.port)]
 j_env = jinja2.Environment(
     loader=PackageLoader("ionic"), autoescape=select_autoescape()
 )

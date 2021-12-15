@@ -19,6 +19,8 @@ if app_url.startswith("https"):
 if not app_url.endswith("/"):
     app_url = app_url + "/"
 
+port = str(_getenv("PORT"))
+
 # Url for the bot and scheduler db
 # SQAlchemy doesn't play well with postgres://, hence we replace
 # it with postgresql://
