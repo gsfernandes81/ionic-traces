@@ -5,12 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Discord API Token
 discord_token = _getenv("DISCORD_TOKEN")
 
-# MBD Server ID
-mbd_server_id: int = int(_getenv("MBD_SERVER_ID"))
-
-# Bot Channel ID
-bot_channel_id = int(_getenv("MBD_BOT_CHANNEL_ID"))
-
 # Server List
 # Format as follows
 # Servers separated by commas ","
