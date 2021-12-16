@@ -5,43 +5,26 @@ name = "pypi"
 
 [packages]
 "discord.py" = {editable = true, ref = "feature/threads", git = "https://github.com/Rapptz/discord.py.git"}
-aiohttp = "*"
-APScheduler = "*"
 arrow = "*"
 asyncpg = "*"
-discord-components = "*"
 dmux = {git = "ssh://git@github.com/gs729/dmux.git"}
-google-auth = "*"
-google-auth-oauthlib = "*"
-grpcio = "*"
-gspread = "*"
 hypercorn = "*"
 jinja2 = "*"
-oauthlib = "*"
 postgres = "*"
-protobuf = "*"
 psycopg2-binary = "*"
 psycopg2-pool = "*"
 python-dotenv = "*"
 pytz = "*"
 quart = "*"
 regex = "*"
-requests = "*"
-requests-oauthlib = "*"
 SQLAlchemy = "*"
 timefhuman = {git = "https://github.com/alvinwan/timefhuman.git"}
-url-normalize = "*"
-vt-py = "*"
 
 [dev-packages]
 "discord.py-stubs" = "*"
 bandit = "*"
 black = "21.12b0"
-debugpy = "*"
-grpcio-tools = "*"
 pyflakes = "*"
-pytest = "*"
-pytest-asyncio = "*"
 rope = "*"
 
 [requires]
