@@ -109,18 +109,6 @@ class IonicTraces(DMux):
                 await self.conversion_handler(message)
 
     async def conversion_handler(self, message: d.Message):
-        # Ignore messages not in a LFG channel
-        channel_and_parents_names = str()
-        channel = message.channel
-        while True:
-            channel_and_parents_names += channel.name + " "
-            try:
-                channel = channel.parent
-            except AttributeError:
-                break
-        if "lfg" not in channel_and_parents_names:
-            return
-
         # Pull properties we want from the message
         user_id = message.author.id
         content = message.content
