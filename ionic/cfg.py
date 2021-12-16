@@ -3,7 +3,7 @@ from os import getenv as _getenv
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Discord API Token
-discord_token = _getenv("IONIC_DISCORD_TOKEN")
+discord_token = _getenv("DISCORD_TOKEN")
 
 # MBD Server ID
 mbd_server_id: int = int(_getenv("MBD_SERVER_ID"))
@@ -13,9 +13,12 @@ bot_channel_id = int(_getenv("MBD_BOT_CHANNEL_ID"))
 
 # Registration URL
 app_url = str(_getenv("APP_URL"))
-if app_url.startswith("https"):
+if app_url.startswith("https") and not _getenv("HTTPS_ENABLED").lower() == "true":
     app_url = app_url[5:]
     app_url = "http" + app_url
+if app_url.startswith("http:") and _getenv("HTTPS_ENABLED").lower() == "true":
+    app_url = app_url[4:]
+    app_url = "https" + app_url
 if not app_url.endswith("/"):
     app_url = app_url + "/"
 
