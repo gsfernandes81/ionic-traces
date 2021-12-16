@@ -1,6 +1,8 @@
 import argparse
+import asyncio
 import random
 import re
+from typing import Union
 
 import discord as d
 import jinja2
@@ -35,6 +37,14 @@ j_template = j_env.get_template("time.jinja")
 app = quart.Quart("ionic")
 
 open_registration_list = {}
+
+
+async def main():
+    dmux = DMux()
+    for server in cfg.server_list:
+        ionic_server = IonicTraces(*server)
+        dmux.register(ionic_server)
+    await asyncio.gather(dmux.start(cfg.discord_token), serve(app, config))
 
 
 class User(Base):
@@ -79,15 +89,31 @@ async def receive_timezone():
 
 
 class IonicTraces(DMux):
-    def __init__(self):
+    def __init__(self, server_id: int, reg_channel_id: Union[int, None] = None):
         super().__init__()
+        # The id of the server this instance is handling
+        self.server_id = int(server_id)
+        # The registration channel id for the server if one is provided
+        self.reg_channel_id = (
+            int(reg_channel_id) if reg_channel_id is not None else None
+        )
 
     async def on_connect(self):
-        print("Ionic Traces Connected")
-        self.bot_channel_id: d.TextChannel = cfg.bot_channel_id
-        async with db_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        await serve(app, config)
+        try:
+            server_name = (await self.client.fetch_guild(self.server_id)).name
+        except d.errors.Forbidden:
+            # The bot is not authorised to access this server
+            print(
+                "Ionic Trace connection failed for server id {}".format(self.server_id)
+            )
+        else:
+            print(
+                "Ionic Traces connected for server: {} id: {}".format(
+                    server_name, self.server_id
+                )
+            )
+            async with db_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
 
     async def on_message(self, message: d.Message):
         try:
@@ -99,7 +125,7 @@ class IonicTraces(DMux):
             pass
         else:
             if (
-                message.guild.id == cfg.mbd_server_id
+                message.guild.id == self.server_id
                 and message.author != self.client.user
             ):
                 # Only pass messages through if they're from the mbd server
@@ -139,12 +165,18 @@ class IonicTraces(DMux):
 
         # If we can't find the user in the db, mention that they can register
         if user is None:
-            await message.reply(
-                "You haven't registered with me yet or registration has failed\n"
-                + "Register by typing `?time` in the <#{}> channel".format(
-                    self.bot_channel_id
+            if self.reg_channel_id is not None:
+                await message.reply(
+                    "You haven't registered with me yet or registration has failed\n"
+                    + "Register by typing `?time` in the <#{}> channel".format(
+                        self.reg_channel_id
+                    )
                 )
-            )
+            else:
+                await message.reply(
+                    "You haven't registered with me yet or registration has failed\n"
+                    + "Register by typing `?time.`"
+                )
             return
 
         # Get the user's TimeZone
@@ -166,7 +198,10 @@ class IonicTraces(DMux):
 
     async def registration_handler(self, message: d.Message):
         if not (
-            message.content == "?time" and message.channel.id == self.bot_channel_id
+            message.content == "?time"
+            and (
+                message.channel.id == self.reg_channel_id or self.reg_channel_id is None
+            )
         ):
             return
         user_id = message.author.id
@@ -187,7 +222,7 @@ class IonicTraces(DMux):
     async def deregister_handler(self, message: d.Message):
         if not (
             message.content == "?time-deregister"
-            and message.channel.id == self.bot_channel_id
+            and message.channel.id == self.reg_channel_id
         ):
             return
         # Find the user in the db
@@ -225,8 +260,4 @@ if __name__ == "__main__":
 
     else:
         # If running an already deployed release, start the discord client
-        dmux = DMux()
-        ionic = IonicTraces()
-        dmux.register(ionic)
-
-        dmux.run(cfg.discord_token)
+        asyncio.run(main())

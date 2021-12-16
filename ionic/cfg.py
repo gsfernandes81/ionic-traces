@@ -11,6 +11,19 @@ mbd_server_id: int = int(_getenv("MBD_SERVER_ID"))
 # Bot Channel ID
 bot_channel_id = int(_getenv("MBD_BOT_CHANNEL_ID"))
 
+# Server List
+# Format as follows
+# Servers separated by commas ","
+# Server with separate registration channels have
+# Registration channel ids after : before the next comma
+# Whitespaces are allowed before/after ids and symbols
+server_list = str(_getenv("SERVER_LIST")).strip()
+server_list = server_list.split(",")
+server_list = [server.strip() for server in server_list]
+server_list = [server.split(":") for server in server_list]
+server_list = [[element.strip() for element in server] for server in server_list]
+
+
 # Registration URL
 app_url = str(_getenv("APP_URL"))
 if app_url.startswith("https") and not _getenv("HTTPS_ENABLED").lower() == "true":
