@@ -139,9 +139,14 @@ class IonicTraces(DMux):
         user_id = message.author.id
         content = message.content
 
+        # Remove emoji, animated emoji, mentions, channels etc
+        # from discord text
+        content = re.sub(
+            "<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>", "", content
+        )
+
         # Find time tokens
-        # Ignores Emoji, Animated Emoji, Mentions, Channels
-        time_list = re.findall("<[^>:@#][^>]+>", content)
+        time_list = re.findall("<[^>][^>]+>", content)
         # Remove the angle brackets
         time_list = [time[1:-1] for time in time_list]
         # Ignore links
