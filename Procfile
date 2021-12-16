@@ -1,4 +1,3 @@
-web: bash -c "python -m tempo & python -m ionic"
-web-debugpy: python -m debugpy --listen 15309 --wait-for-client tempo/__main__.py
-release: python -m tempo --release
-reset: python -m tempo --reset
+web: python -m ionic
+release: python -m ionic --release
+reset: python -m ionic --reset

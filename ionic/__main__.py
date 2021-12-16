@@ -1,11 +1,12 @@
+import argparse
 import random
 import re
 
-from arrow import Arrow
 import discord as d
 import jinja2
 import quart
-from timefhuman import timefhuman
+import sqlalchemy as sql
+from arrow import Arrow
 from dmux import DMux
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
@@ -13,9 +14,10 @@ from jinja2.loaders import PackageLoader
 from jinja2.utils import select_autoescape
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.sql.expression import select, delete
+from sqlalchemy.sql.expression import delete, select
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.sqltypes import BigInteger, String
+from timefhuman import timefhuman
 
 from . import cfg
 
@@ -207,8 +209,33 @@ class IonicTraces(DMux):
 
 
 if __name__ == "__main__":
-    dmux = DMux()
-    ionic = IonicTraces()
-    dmux.register(ionic)
 
-    dmux.run(cfg.discord_token)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--release", action="store_true", help="Performs release tasks for heroku"
+    )
+    parser.add_argument(
+        "--reset", action="store_true", help="Deletes everything in the persistent db"
+    )
+    parser = parser.parse_args()
+
+    if parser.release or parser.reset:
+        if parser.reset:
+            print("Deleting all tables")
+            engine = sql.create_engine(cfg.db_url)
+            meta = sql.MetaData()
+            meta.reflect(bind=engine)
+            for tbl in reversed(meta.sorted_tables):
+                print("Dropping table", tbl)
+                tbl.drop(engine)
+            print("Remaining tables: ", len(sql.MetaData().sorted_tables), sep="")
+        # Release tasks go here :
+        # None as of now
+
+    else:
+        # If running an already deployed release, start the discord client
+        dmux = DMux()
+        ionic = IonicTraces()
+        dmux.register(ionic)
+
+        dmux.run(cfg.discord_token)
