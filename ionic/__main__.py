@@ -140,9 +140,12 @@ class IonicTraces(DMux):
         content = message.content
 
         # Find time tokens
-        time_list = re.findall("<[^>]+>", content)
+        # Ignores Emoji, Animated Emoji, Mentions, Channels
+        time_list = re.findall("<[^>:@#][^>]+>", content)
         # Remove the angle brackets
         time_list = [time[1:-1] for time in time_list]
+        # Ignore links
+        time_list = [time for time in time_list if not time.startswith("http")]
         # Timefhuman always seems to throw a value error. Ignore these for now
         try:
             # Parse the human readable time to datetime format
