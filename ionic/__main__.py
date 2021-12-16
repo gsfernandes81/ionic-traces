@@ -194,6 +194,7 @@ class IonicTraces(DMux):
             + "This data is stored securely and not processed in any way and can be deleted with "
             + "`?time-deregister`"
         )
+        await message.reply("Check your direct messages for a registration link")
 
     async def deregister_handler(self, message: d.Message):
         if not (
@@ -206,6 +207,8 @@ class IonicTraces(DMux):
             async with session.begin():
                 # Delete the user's row
                 await session.execute(delete(User).where(User.id == message.author.id))
+
+        await message.reply("You have successfully unregistered")
 
 
 if __name__ == "__main__":
