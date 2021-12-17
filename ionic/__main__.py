@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from asyncio.tasks import FIRST_COMPLETED
 import random
 import re
 from typing import Union
@@ -40,13 +41,34 @@ open_registration_list = {}
 
 MESSAGE_DELETE_REACTION = "❌"
 
+shutdown_event = asyncio.Event()
 
-async def main():
+
+def main():
     dmux = DMux()
     for server in cfg.server_list:
         ionic_server = IonicTraces(*server)
         dmux.register(ionic_server)
-    await asyncio.gather(dmux.start(cfg.discord_token), serve(app, config))
+
+    try:
+        asyncio.run(
+            asyncio.wait(
+                [
+                    dmux.start(cfg.discord_token),
+                    serve(
+                        app,
+                        config,
+                    ),
+                ],
+                # When any of the tasks above exit, the whole app must exit
+                # Having the registration server or dmux running alone
+                # is of no use
+                return_when=FIRST_COMPLETED,
+            )
+        )
+    except asyncio.exceptions.CancelledError:
+        # Ignore cancellation errors thrown on SIGTERM
+        pass
 
 
 class User(Base):
@@ -309,4 +331,4 @@ if __name__ == "__main__":
 
     else:
         # If running an already deployed release, start the discord client
-        asyncio.run(main())
+        main()
