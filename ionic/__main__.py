@@ -38,6 +38,8 @@ app = quart.Quart("ionic")
 
 open_registration_list = {}
 
+MESSAGE_DELETE_REACTION = "❌"
+
 
 async def main():
     dmux = DMux()
@@ -133,6 +135,45 @@ class IonicTraces(DMux):
                 await self.registration_handler(message)
                 await self.deregister_handler(message)
                 await self.conversion_handler(message)
+            if (
+                message.guild.id == self.server_id
+                and message.author == self.client.user
+            ):
+                # Respond only to bots own messages
+                # This is to react to them with an emoji
+                await message.add_reaction(MESSAGE_DELETE_REACTION)
+
+    async def on_reaction_add(self, reaction: d.Reaction, user: d.User):
+        # Do not react to servers we are not supposed to
+        if reaction.message.guild.id != self.server_id:
+            return
+
+        # Do not respond to reactions on messages not sent by self
+        if reaction.message.author != self.client.user:
+            return
+
+        # Do not respond to the specific reactions added by self
+        # We can still respond to reactions that match ours,
+        # but are added by others
+        if user == self.client.user:
+            return
+
+        channel = reaction.message.channel
+        message_reacted_to = reaction.message
+        message_replied_to = await channel.fetch_message(
+            message_reacted_to.reference.message_id
+        )
+        time_author = message_replied_to.author
+
+        # Delete the time message if the author wants it deleted
+        # Also double check that the message about to be deleted is
+        # sent by self
+        if (
+            reaction.emoji == MESSAGE_DELETE_REACTION
+            and time_author == user
+            and message_reacted_to.author == self.client.user
+        ):
+            await message_reacted_to.delete()
 
     async def conversion_handler(self, message: d.Message):
         # Pull properties we want from the message
