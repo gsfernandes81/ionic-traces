@@ -32,7 +32,7 @@ db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
 config = Config()
 config.bind = ["0.0.0.0:{}".format(cfg.port)]
 j_env = jinja2.Environment(
-    loader=PackageLoader("ionic"), autoescape=select_autoescape()
+    loader=PackageLoader("ionic"), autoescape=select_autoescape(), enable_async=True
 )
 j_template = j_env.get_template("time.jinja")
 app = quart.Quart("ionic")
@@ -84,7 +84,7 @@ class User(Base):
 
 @app.route("/<link_id>")
 async def send_payload(link_id: int):
-    payload = j_template.render(response_url=cfg.app_url, link_id=link_id)
+    payload = await j_template.render_async(response_url=cfg.app_url, link_id=link_id)
     return payload
 
 
