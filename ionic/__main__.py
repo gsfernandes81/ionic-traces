@@ -1,14 +1,15 @@
 import argparse
 import asyncio
-from asyncio.tasks import FIRST_COMPLETED
 import random
 import re
+from asyncio.tasks import FIRST_COMPLETED
 from typing import Union
 
 import discord as d
 import jinja2
 import quart
 import sqlalchemy as sql
+import uvloop
 from arrow import Arrow
 from dmux import DMux
 from hypercorn.asyncio import serve
@@ -51,6 +52,7 @@ def main():
         dmux.register(ionic_server)
 
     try:
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
         asyncio.run(
             asyncio.wait(
                 [

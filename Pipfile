@@ -19,6 +19,7 @@ quart = "*"
 regex = "*"
 SQLAlchemy = "*"
 timefhuman = {git = "https://github.com/alvinwan/timefhuman.git"}
+uvloop = "*"
 
 [dev-packages]
 "discord.py-stubs" = "*"
