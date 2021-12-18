@@ -177,7 +177,7 @@ class IonicTraces(DMux):
                 )
             if (
                 message.guild.id == self.server_id
-                and message.author == self.client.user
+                and message.author.id == self.client.user.id
             ):
                 # Respond only to bots own messages
                 # This is to react to them with an emoji
@@ -189,31 +189,37 @@ class IonicTraces(DMux):
             return
 
         # Do not respond to reactions on messages not sent by self
-        if reaction.message.author != self.client.user:
+        if reaction.message.author.id != self.client.user.id:
             return
 
         # Do not respond to the specific reactions added by self
         # We can still respond to reactions that match ours,
         # but are added by others
-        if user == self.client.user:
+        if user.id == self.client.user.id:
             return
 
-        channel = reaction.message.channel
+        # Do not respond to emoji we don't care about
+        if reaction.emoji != MESSAGE_DELETE_REACTION:
+            return
+
+        # If message_reacted to isn't sent by self,
+        # ignore it
         message_reacted_to = reaction.message
+        if message_reacted_to.author != self.client.user:
+            return
+
+        # If reaction is by user that did not trigger its creation
+        # ignore it
+        channel = reaction.message.channel
         message_replied_to = await channel.fetch_message(
             message_reacted_to.reference.message_id
         )
         time_author = message_replied_to.author
+        if time_author.id != user.id:
+            return
 
-        # Delete the time message if the author wants it deleted
-        # Also double check that the message about to be deleted is
-        # sent by self
-        if (
-            reaction.emoji == MESSAGE_DELETE_REACTION
-            and time_author == user
-            and message_reacted_to.author == self.client.user
-        ):
-            await message_reacted_to.delete()
+        # Delete the message if all checks have been passed
+        await message_reacted_to.delete()
 
     async def conversion_handler(self, message: d.Message):
         # Pull properties we want from the message
