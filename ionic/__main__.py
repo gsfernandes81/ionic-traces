@@ -3,7 +3,7 @@ import asyncio
 import datetime as dt
 import random
 import re
-from asyncio.tasks import FIRST_COMPLETED
+from asyncio.tasks import ALL_COMPLETED, FIRST_COMPLETED
 from typing import Union
 
 import discord as d
@@ -42,6 +42,10 @@ app = quart.Quart("ionic")
 
 MESSAGE_DELETE_REACTION = "❌"
 REGISTRATION_TIMEOUT = dt.timedelta(minutes=30)
+# Regex discord elements
+rgx_d_elems = re.compile("<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>")
+# Regex datetime markers
+rgx_dt_markers = re.compile("<[^>][^>]+>")
 
 shutdown_event = asyncio.Event()
 
@@ -162,10 +166,15 @@ class IonicTraces(DMux):
                 and message.author != self.client.user
             ):
                 # Only pass messages through if they're from the mbd server
-                await super().on_message(message)
-                await self.registration_handler(message)
-                await self.deregister_handler(message)
-                await self.conversion_handler(message)
+                await asyncio.wait(
+                    [
+                        super().on_message(message),
+                        self.registration_handler(message),
+                        self.deregister_handler(message),
+                        self.conversion_handler(message),
+                    ],
+                    return_when=ALL_COMPLETED,
+                )
             if (
                 message.guild.id == self.server_id
                 and message.author == self.client.user
@@ -213,12 +222,10 @@ class IonicTraces(DMux):
 
         # Remove emoji, animated emoji, mentions, channels etc
         # from discord text
-        content = re.sub(
-            "<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>", "", content
-        )
+        content = rgx_d_elems.sub("", content)
 
         # Find time tokens
-        time_list = re.findall("<[^>][^>]+>", content)
+        time_list = rgx_dt_markers.findall(content)
         # Remove the angle brackets
         time_list = [time[1:-1] for time in time_list]
         # Ignore links
