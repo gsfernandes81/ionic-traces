@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import datetime as dt
 import random
 import re
 from asyncio.tasks import FIRST_COMPLETED
@@ -16,11 +17,12 @@ from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from jinja2.loaders import PackageLoader
 from jinja2.utils import select_autoescape
+from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql.expression import delete, select
 from sqlalchemy.sql.schema import Column
-from sqlalchemy.sql.sqltypes import BigInteger, String
+from sqlalchemy.sql.sqltypes import BigInteger, DateTime, String
 from timefhuman import timefhuman
 
 from . import cfg
@@ -38,9 +40,8 @@ j_env = jinja2.Environment(
 j_template = j_env.get_template("time.jinja")
 app = quart.Quart("ionic")
 
-open_registration_list = {}
-
 MESSAGE_DELETE_REACTION = "❌"
+REGISTRATION_TIMEOUT = dt.timedelta(minutes=30)
 
 shutdown_event = asyncio.Event()
 
@@ -78,8 +79,14 @@ class User(Base):
     __mapper_args__ = {"eager_defaults": True}
     id = Column("id", BigInteger, primary_key=True)
     tz = Column("tz", String)
+    # Column used to mark a user for an update
+    update_id = Column("update_id", BigInteger)
+    update_dt = Column(
+        "update_dt", DateTime(timezone=True), default=dt.datetime.now(tz=utc)
+    )
 
     def __init__(self, id, tz):
+        super().__init__()
         self.id = id
         self.tz = tz
 
@@ -95,22 +102,22 @@ async def receive_timezone():
     timezone = await quart.request.get_json()
     link_id = timezone["link_id"]
     timezone = timezone["tz"]
-    try:
-        user_id = open_registration_list.pop(link_id)
-    except KeyError:
-        return "No Such Registration in Progress"
 
-    async with db_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     async with db_session() as session:
         async with session.begin():
-            instance = await session.get(User, int(user_id))
-            if instance is None:
-                instance = User(int(user_id), str(timezone))
-                session.add(instance)
-            else:
-                instance.tz = timezone
-
+            user = (
+                await session.execute(
+                    select(User).where(User.update_id == int(link_id))
+                )
+            ).fetchone()
+            if user is None:
+                # If there is no such user, then no such user
+                # has requested registration
+                return
+            user = user[0]
+            if dt.datetime.now(tz=utc) - user.update_dt > REGISTRATION_TIMEOUT:
+                return "Link timed out"
+            user.tz = timezone
     return "Received"
 
 
@@ -237,7 +244,8 @@ class IonicTraces(DMux):
                 ).fetchone()
 
         # If we can't find the user in the db, mention that they can register
-        if user is None:
+        # or if their timezone record is empty
+        if user is None or user[0].tz == "":
             if self.reg_channel_id is not None:
                 await message.reply(
                     "You haven't registered with me yet or registration has failed\n"
@@ -278,8 +286,16 @@ class IonicTraces(DMux):
         ):
             return
         user_id = message.author.id
-        link_id = str(random.randrange(1000000, 9999999, 1))
-        open_registration_list[link_id] = user_id
+        link_id = random.randrange(1000000, 9999999, 1)
+
+        # Add the link_id to the db
+        async with db_session() as session:
+            async with session.begin():
+                instance = await session.get(User, int(user_id))
+                if instance is None:
+                    instance = User(int(user_id), "")
+                instance.update_id = link_id
+                session.add(instance)
 
         await message.author.send(
             "Visit this link to register your timezone: \n\n<{}{}>\n\n".format(
