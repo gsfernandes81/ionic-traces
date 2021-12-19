@@ -11,13 +11,14 @@ import sqlalchemy as sql
 import uvloop
 from arrow import Arrow
 from dmux import DMux
+from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
 from timefhuman import timefhuman
 
 from . import cfg
-from .schemas import User, Base
+from .schemas import Base, User
 
 db_engine = create_async_engine(cfg.db_url_async)
 db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
@@ -225,7 +226,12 @@ class IonicTraces(DMux):
             async with session.begin():
                 instance = await session.get(User, int(user_id))
                 if instance is None:
+                    # If the user hasn't registered yet, create a row for them
                     instance = User(int(user_id), "")
+                else:
+                    # If they have, make sure to update their datetime to allow
+                    # them to register
+                    instance.update_dt = dt.datetime.now(tz=utc)
                 instance.update_id = link_id
                 session.add(instance)
 
