@@ -3,51 +3,31 @@ import asyncio
 import datetime as dt
 import random
 import re
-from asyncio.tasks import ALL_COMPLETED, FIRST_COMPLETED
+from asyncio.tasks import ALL_COMPLETED
 from typing import Union
 
 import discord as d
-import jinja2
-import quart
 import sqlalchemy as sql
 import uvloop
 from arrow import Arrow
 from dmux import DMux
-from hypercorn.asyncio import serve
-from hypercorn.config import Config
-from jinja2.loaders import PackageLoader
-from jinja2.utils import select_autoescape
-from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql.expression import delete, select
-from sqlalchemy.sql.schema import Column
-from sqlalchemy.sql.sqltypes import BigInteger, DateTime, String
 from timefhuman import timefhuman
 
 from . import cfg
+from .schemas import User, Base
 
-Base = declarative_base()
 db_engine = create_async_engine(cfg.db_url_async)
 db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
 
 
-config = Config()
-config.bind = ["0.0.0.0:{}".format(cfg.port)]
-j_env = jinja2.Environment(
-    loader=PackageLoader("ionic"), autoescape=select_autoescape(), enable_async=True
-)
-j_template = j_env.get_template("time.jinja")
-app = quart.Quart("ionic")
-
 MESSAGE_DELETE_REACTION = "❌"
-REGISTRATION_TIMEOUT = dt.timedelta(minutes=30)
 # Regex discord elements
 rgx_d_elems = re.compile("<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>")
 # Regex datetime markers
 rgx_dt_markers = re.compile("<[^>][^>]+>")
-
-shutdown_event = asyncio.Event()
 
 
 def main():
@@ -59,70 +39,11 @@ def main():
     try:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
         asyncio.run(
-            asyncio.wait(
-                [
-                    dmux.start(cfg.discord_token),
-                    serve(
-                        app,
-                        config,
-                    ),
-                ],
-                # When any of the tasks above exit, the whole app must exit
-                # Having the registration server or dmux running alone
-                # is of no use
-                return_when=FIRST_COMPLETED,
-            )
+            dmux.start(cfg.discord_token),
         )
     except asyncio.exceptions.CancelledError:
         # Ignore cancellation errors thrown on SIGTERM
         pass
-
-
-class User(Base):
-    __tablename__ = "mbd_user"
-    __mapper_args__ = {"eager_defaults": True}
-    id = Column("id", BigInteger, primary_key=True)
-    tz = Column("tz", String)
-    # Column used to mark a user for an update
-    update_id = Column("update_id", BigInteger)
-    update_dt = Column(
-        "update_dt", DateTime(timezone=True), default=dt.datetime.now(tz=utc)
-    )
-
-    def __init__(self, id, tz):
-        super().__init__()
-        self.id = id
-        self.tz = tz
-
-
-@app.route("/<link_id>")
-async def send_payload(link_id: int):
-    payload = await j_template.render_async(response_url=cfg.app_url, link_id=link_id)
-    return payload
-
-
-@app.post("/")
-async def receive_timezone():
-    timezone = await quart.request.get_json()
-    link_id = timezone["link_id"]
-    timezone = timezone["tz"]
-
-    async with db_session() as session:
-        async with session.begin():
-            user = (
-                await session.execute(
-                    select(User).where(User.update_id == int(link_id))
-                )
-            ).fetchone()
-            if user is None:
-                # If there is no such user, then no such user
-                # has requested registration
-                return
-            user = user[0]
-            if dt.datetime.now(tz=utc) - user.update_dt > REGISTRATION_TIMEOUT:
-                return "Link timed out"
-            user.tz = timezone
-    return "Received"
 
 
 class IonicTraces(DMux):
