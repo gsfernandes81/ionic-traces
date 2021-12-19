@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "530d49202236fbde28a009d258a59476f6c2a9f95dac5018303876ab1162850e"
+            "sha256": "e924fa66739596c3494c57b5f38398fd6b5f408cb7623113d9194eb15c855d8a"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -163,12 +163,12 @@
         "discord-py": {
             "editable": true,
             "git": "https://github.com/Rapptz/discord.py.git",
-            "ref": "746da7d54cc2bbcc4ba0f854257b647e88d77898"
+            "ref": "45d498c1b76deaf3b394d17ccf56112fa691d160"
         },
         "discord.py": {
             "editable": true,
             "git": "https://github.com/Rapptz/discord.py.git",
-            "ref": "feature/threads"
+            "ref": "master"
         },
         "dmux": {
             "git": "ssh://git@github.com/gs729/dmux.git",
@@ -911,7 +911,7 @@
         "discord.py": {
             "editable": true,
             "git": "https://github.com/Rapptz/discord.py.git",
-            "ref": "feature/threads"
+            "ref": "master"
         },
         "discord.py-stubs": {
             "hashes": [

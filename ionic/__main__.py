@@ -38,9 +38,7 @@ def main():
 
     try:
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-        asyncio.run(
-            dmux.start(cfg.discord_token),
-        )
+        dmux.run(cfg.discord_token)
     except asyncio.exceptions.CancelledError:
         # Ignore cancellation errors thrown on SIGTERM
         pass
