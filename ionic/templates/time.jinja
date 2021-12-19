@@ -3,19 +3,33 @@
 <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
-        $('document').ready($.ajax({
-            type: "POST",
-            url: "{{ response_url }}", 
-            data: JSON.stringify({   
-                "link_id": "{{ link_id }}", 
-                "tz": Intl.DateTimeFormat().resolvedOptions().timeZone,
-            }),
-            success: null,
-            contentType: 'application/json'
-        }))
+        $('document').ready(
+            $.ajax({
+                type: "POST",
+                url: "{{ response_url }}", 
+                data: JSON.stringify({   
+                    "link_id": "{{ link_id }}", 
+                    "tz": Intl.DateTimeFormat().resolvedOptions().timeZone,
+                }),
+                success: null,
+                contentType: 'application/json'
+            })
+            .done(function (){
+                window.location.replace("{{ response_url }}success")
+            })
+            .fail(function (){
+                window.location.replace("{{ response_url }}failure")
+            })
+        )
     </script>
+    <!--Fonts-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans" rel="stylesheet">
 </head>
 
 <body>
-    You can close this tab.
+<div style="font-family: 'Open Sans', sans-serif; font-weight: 600">
+    Working : O
+</div>
 </body>
