@@ -23,3 +23,4 @@ class User(Base):
         super().__init__()
         self.id = id
         self.tz = tz
+        self.update_dt = dt.datetime.now(tz=utc)
