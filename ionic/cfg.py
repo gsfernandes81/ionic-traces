@@ -1,3 +1,4 @@
+import datetime as dt
 from os import getenv as _getenv
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,3 +44,5 @@ if db_url.startswith("postgres"):
 
 # Async SQLAlchemy DB Session KWArg Parameters
 db_session_kwargs = {"expire_on_commit": False, "class_": AsyncSession}
+
+REGISTRATION_TIMEOUT = dt.timedelta(minutes=10)

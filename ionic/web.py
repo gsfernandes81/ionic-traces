@@ -14,6 +14,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql.expression import select
 
 from . import cfg
+from .cfg import REGISTRATION_TIMEOUT
 from .schemas import User
 
 config = Config()
@@ -28,8 +29,6 @@ app = quart.Quart("ionic")
 
 db_engine = create_async_engine(cfg.db_url_async)
 db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
-
-REGISTRATION_TIMEOUT = dt.timedelta(minutes=30)
 
 
 @app.route("/register/<link_id>")

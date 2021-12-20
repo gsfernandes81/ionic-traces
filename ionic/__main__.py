@@ -4,7 +4,7 @@ import datetime as dt
 import random
 import re
 from asyncio.tasks import ALL_COMPLETED
-from typing import Union
+from typing import List, Union
 
 import discord as d
 import sqlalchemy as sql
@@ -18,6 +18,7 @@ from sqlalchemy.sql.expression import delete, select
 from timefhuman import timefhuman
 
 from . import cfg
+from .cfg import REGISTRATION_TIMEOUT
 from .schemas import Base, User
 
 db_engine = create_async_engine(cfg.db_url_async)
@@ -164,55 +165,46 @@ class IonicTraces(DMux):
             return
 
         # Find the user in the db
-        async with db_session() as session:
-            async with session.begin():
-                user = (
-                    await session.execute(select(User).where(User.id == user_id))
-                ).fetchone()
+        user = await self._get_user_by_id(user_id)
 
         # If we can't find the user in the db, mention that they can register
         # or if their timezone record is empty
-        if user is None or user[0].tz == "":
-            if self.reg_channel_id is not None:
-                response_msg = await message.reply(
-                    "You haven't registered with me yet or registration has failed\n"
-                    + "Register by typing `?time` in the <#{}> channel".format(
-                        self.reg_channel_id
-                    )
-                )
-            else:
-                response_msg = await message.reply(
-                    "You haven't registered with me yet or registration has failed\n"
-                    + "Register by typing `?time.`"
-                )
+        is_user_not_registered: bool = user is None or user.tz == ""
+        if is_user_not_registered:
+            response_msg = await message.reply(
+                "You haven't registered with me yet or registration has failed\n"
+                + "Sending you a registration link in a dm..."
+            )
+            await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
+            await self.register_user(message)
+            while True:
+                await asyncio.sleep(10)
+                user: User = await self._get_user_by_id(user_id)
+                if user is None or user.tz == "":
+                    continue
+                if dt.datetime.now(tz=utc) - user.update_dt > REGISTRATION_TIMEOUT:
+                    break
+                reply = await self._reply_from_user_and_times(user, time_list)
+                try:
+                    await response_msg.edit(content=reply)
+                except d.errors.NotFound:
+                    # Ignore this error: (The message must have been deleted)
+                    pass
+                break
         else:
-            # Get the user's TimeZone
-            tz = str(user[0].tz)
-
-            # Account for time zones
-            time_list = [Arrow.fromdatetime(time, tz) for time in time_list]
-            # Convert to UTC
-            utc_time_list = [time.to("UTC") for time in time_list]
-            # Convert to unix time
-            unix_time_list = [
-                int((time - Arrow(1970, 1, 1)).total_seconds())
-                for time in utc_time_list
-            ]
-            # Create reply text
-            reply = ":F>, <t:".join([str(time) for time in unix_time_list])
-            reply = "<t:" + reply + ":F>"
-            reply = "That's " + reply + " auto-converted to local time."
+            # Use the time list and the user object to create a reply
+            reply = await self._reply_from_user_and_times(user, time_list)
             response_msg = await message.reply(reply)
-        await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
+            await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
 
     async def registration_handler(self, message: d.Message):
-        if not (
-            message.content == "?time"
-            and (
-                message.channel.id == self.reg_channel_id or self.reg_channel_id is None
-            )
+        if message.content == "?time" and (
+            message.channel.id == self.reg_channel_id or self.reg_channel_id is None
         ):
-            return
+            await self.register_user(message)
+            await message.reply("Check your direct messages for a registration link")
+
+    async def register_user(self, message: d.Message):
         user_id = message.author.id
         link_id = random.randrange(1000000, 9999999, 1)
 
@@ -237,9 +229,10 @@ class IonicTraces(DMux):
             + "This will collect and store your discord id and your timezone.\n"
             + "Both of these are only used to understand what time you mean when you use the bot. "
             + "This data is stored securely and not processed in any way and can be deleted with "
-            + "`?time-deregister`"
+            + "`?time-deregister` and you can reregister with `?time` in the {} channel".format(
+                (await self.client.fetch_channel(message.channel.id)).name
+            )
         )
-        await message.reply("Check your direct messages for a registration link")
 
     async def deregister_handler(self, message: d.Message):
         if not (
@@ -253,7 +246,35 @@ class IonicTraces(DMux):
                 # Delete the user's row
                 await session.execute(delete(User).where(User.id == message.author.id))
 
-        await message.reply("You have successfully unregistered")
+        await message.reply("You have successfully deregistered")
+
+    @staticmethod
+    async def _get_user_by_id(id: int) -> User:
+        """Returns the user or None if they aren't found in the db"""
+        async with db_session() as session:
+            async with session.begin():
+                user = (
+                    await session.execute(select(User).where(User.id == id))
+                ).fetchone()
+        return user if user is None else user[0]
+
+    async def _reply_from_user_and_times(self, user: User, time_list: List) -> str:
+        # Get the user's TimeZone
+        tz = str(user.tz)
+
+        # Account for time zones
+        time_list = [Arrow.fromdatetime(time, tz) for time in time_list]
+        # Convert to UTC
+        utc_time_list = [time.to("UTC") for time in time_list]
+        # Convert to unix time
+        unix_time_list = [
+            int((time - Arrow(1970, 1, 1)).total_seconds()) for time in utc_time_list
+        ]
+        # Create reply text
+        reply = ":F>, <t:".join([str(time) for time in unix_time_list])
+        reply = "<t:" + reply + ":F>"
+        reply = "That's " + reply + " auto-converted to local time."
+        return reply
 
 
 if __name__ == "__main__":
