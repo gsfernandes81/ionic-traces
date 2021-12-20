@@ -84,6 +84,7 @@ class IonicTraces(DMux):
             if (
                 message.guild.id == self.server_id
                 and message.author != self.client.user
+                and not message.author.bot
             ):
                 # Only pass messages through if they're from the mbd server
                 await asyncio.wait(
@@ -95,13 +96,6 @@ class IonicTraces(DMux):
                     ],
                     return_when=ALL_COMPLETED,
                 )
-            if (
-                message.guild.id == self.server_id
-                and message.author.id == self.client.user.id
-            ):
-                # Respond only to bots own messages
-                # This is to react to them with an emoji
-                await message.add_reaction(MESSAGE_DELETE_REACTION)
 
     async def on_reaction_add(self, reaction: d.Reaction, user: d.User):
         # Do not react to servers we are not supposed to
@@ -180,35 +174,36 @@ class IonicTraces(DMux):
         # or if their timezone record is empty
         if user is None or user[0].tz == "":
             if self.reg_channel_id is not None:
-                await message.reply(
+                response_msg = await message.reply(
                     "You haven't registered with me yet or registration has failed\n"
                     + "Register by typing `?time` in the <#{}> channel".format(
                         self.reg_channel_id
                     )
                 )
             else:
-                await message.reply(
+                response_msg = await message.reply(
                     "You haven't registered with me yet or registration has failed\n"
                     + "Register by typing `?time.`"
                 )
-            return
+        else:
+            # Get the user's TimeZone
+            tz = str(user[0].tz)
 
-        # Get the user's TimeZone
-        tz = str(user[0].tz)
-
-        # Account for time zones
-        time_list = [Arrow.fromdatetime(time, tz) for time in time_list]
-        # Convert to UTC
-        utc_time_list = [time.to("UTC") for time in time_list]
-        # Convert to unix time
-        unix_time_list = [
-            int((time - Arrow(1970, 1, 1)).total_seconds()) for time in utc_time_list
-        ]
-        # Create reply text
-        reply = ":F>, <t:".join([str(time) for time in unix_time_list])
-        reply = "<t:" + reply + ":F>"
-        reply = "That's " + reply + " auto-converted to local time."
-        await message.reply(reply)
+            # Account for time zones
+            time_list = [Arrow.fromdatetime(time, tz) for time in time_list]
+            # Convert to UTC
+            utc_time_list = [time.to("UTC") for time in time_list]
+            # Convert to unix time
+            unix_time_list = [
+                int((time - Arrow(1970, 1, 1)).total_seconds())
+                for time in utc_time_list
+            ]
+            # Create reply text
+            reply = ":F>, <t:".join([str(time) for time in unix_time_list])
+            reply = "<t:" + reply + ":F>"
+            reply = "That's " + reply + " auto-converted to local time."
+            response_msg = await message.reply(reply)
+        await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
 
     async def registration_handler(self, message: d.Message):
         if not (
