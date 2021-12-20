@@ -8,6 +8,7 @@ from typing import List, Union
 
 import discord as d
 import sqlalchemy as sql
+from sqlalchemy.sql.functions import user
 import uvloop
 from arrow import Arrow
 from dmux import DMux
@@ -206,10 +207,29 @@ class IonicTraces(DMux):
 
     async def register_user(self, message: d.Message):
         user_id = message.author.id
-        link_id = random.randrange(1000000, 9999999, 1)
 
         # Add the link_id to the db
         async with db_session() as session:
+            # Generate a new link_id / update_id
+            # Ensure that this does not clash with any currently
+            # valid link_id
+            async with session.begin():
+                users = (
+                    await session.execute(
+                        select(User.update_dt, User.update_id).where(
+                            dt.datetime.now(tz=utc) - User.update_dt
+                            <= REGISTRATION_TIMEOUT
+                        )
+                    )
+                ).fetchall()
+                users = [] if users is None else users
+                used_link_ids = set([user.update_id for user in users])
+            while True:
+                link_id = random.randrange(1000000, 9999999, 1)
+                if link_id not in used_link_ids:
+                    break
+
+            # Add or prepare to update the user's records
             async with session.begin():
                 instance = await session.get(User, int(user_id))
                 if instance is None:
