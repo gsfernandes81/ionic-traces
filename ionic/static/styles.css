@@ -1,9 +1,13 @@
 .status-message-main {
     font-family: 'Open Sans', sans-serif;
     font-weight: 600;
+    width: 100%;
+    text-align: center;
 }
 
 .status-message-subscript {
     font-family: 'Open Sans', sans-serif;
     font-weight: normal;
+    width: 100%;
+    text-align: center;
 }
