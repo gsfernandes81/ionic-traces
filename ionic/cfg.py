@@ -26,8 +26,8 @@ if app_url.startswith("https") and not _getenv("HTTPS_ENABLED").lower() == "true
 if app_url.startswith("http:") and _getenv("HTTPS_ENABLED").lower() == "true":
     app_url = app_url[4:]
     app_url = "https" + app_url
-if not app_url.endswith("/"):
-    app_url = app_url + "/"
+if app_url.endswith("/"):
+    app_url = app_url[:-1]
 
 port = str(_getenv("PORT"))
 

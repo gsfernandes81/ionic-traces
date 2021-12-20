@@ -21,7 +21,7 @@ config.bind = ["0.0.0.0:{}".format(cfg.port)]
 j_env = jinja2.Environment(
     loader=PackageLoader("ionic"), autoescape=select_autoescape(), enable_async=True
 )
-register_template = j_env.get_template("time.jinja")
+register_template = j_env.get_template("register.jinja")
 success_page = j_env.get_template("success.jinja")
 failure_page = j_env.get_template("failure.jinja")
 app = quart.Quart("ionic")
@@ -35,19 +35,32 @@ REGISTRATION_TIMEOUT = dt.timedelta(minutes=30)
 @app.route("/register/<link_id>")
 async def send_payload(link_id: int):
     payload = await register_template.render_async(
-        response_url=cfg.app_url, link_id=link_id
+        base_url=cfg.app_url,
+        link_id=link_id,
+        stylesheet=quart.url_for("static", filename="styles.css"),
     )
     return payload
 
 
+@app.route("/static/<path:path>")
+async def send_static(path):
+    return quart.send_from_directory("static", path)
+
+
 @app.route("/success")
 async def respond_success():
-    return await success_page.render_async()
+    return await success_page.render_async(
+        base_url=cfg.app_url,
+        stylesheet=quart.url_for("static", filename="styles.css"),
+    )
 
 
 @app.route("/failure")
 async def respond_failure():
-    return await failure_page.render_async()
+    return await failure_page.render_async(
+        base_url=cfg.app_url,
+        stylesheet=quart.url_for("static", filename="styles.css"),
+    )
 
 
 @app.post("/")

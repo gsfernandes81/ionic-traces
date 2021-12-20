@@ -6,7 +6,7 @@
         $('document').ready(
             $.ajax({
                 type: "POST",
-                url: "{{ response_url }}", 
+                url: "{{ base_url }}/", 
                 data: JSON.stringify({   
                     "link_id": "{{ link_id }}", 
                     "tz": Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -15,21 +15,22 @@
                 contentType: 'application/json'
             })
             .done(function (){
-                window.location.replace("{{ response_url }}success")
+                window.location.replace("{{ base_url }}/success")
             })
             .fail(function (){
-                window.location.replace("{{ response_url }}failure")
+                window.location.replace("{{ base_url }}/failure")
             })
         )
     </script>
-    <!--Fonts-->
+    <!--Styles-->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="{{ base_url }}/{{ stylesheet }}">
 </head>
 
 <body>
-<div style="font-family: 'Open Sans', sans-serif; font-weight: 600">
+<div class="status-message-main">
     Working : O
 </div>
 </body>
