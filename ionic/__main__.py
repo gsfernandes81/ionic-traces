@@ -231,7 +231,7 @@ class IonicTraces(DMux):
                 session.add(instance)
 
         await message.author.send(
-            "Visit this link to register your timezone: \n\n<{}register/{}>\n\n".format(
+            "Visit this link to register your timezone: \n\n<{}/register/{}>\n\n".format(
                 cfg.app_url, link_id
             )
             + "This will collect and store your discord id and your timezone.\n"
