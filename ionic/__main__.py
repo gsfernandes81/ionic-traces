@@ -188,7 +188,7 @@ class IonicTraces(DMux):
         is_user_not_registered: bool = user is None or user.tz == ""
         if is_user_not_registered:
             response_msg = await message.reply(
-                "You haven't registered with me yet or registration has failed\n"
+                "You haven't registered with me yet\n"
                 + "Sending you a registration link in a dm..."
             )
             await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
