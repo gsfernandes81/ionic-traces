@@ -163,7 +163,7 @@ class IonicTraces(DMux):
 
             # Find the user in the db, stop if not found
             user = await self._get_user_by_id(time_author.id)
-            if user is None:
+            if user is None or user.tz == "":
                 return
             await message_reacted_to.edit(
                 content=await self._reply_from_user_and_times(user, time_list)
