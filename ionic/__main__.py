@@ -27,6 +27,8 @@ db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
 
 
 MESSAGE_DELETE_REACTION = "❌"
+MESSAGE_REFRESH_REACTION = "🔄"
+
 # Regex discord elements
 rgx_d_elems = re.compile("<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>")
 # Regex datetime markers
@@ -115,7 +117,10 @@ class IonicTraces(DMux):
             return
 
         # Do not respond to emoji we don't care about
-        if reaction.emoji != MESSAGE_DELETE_REACTION:
+        if not (
+            reaction.emoji == MESSAGE_DELETE_REACTION
+            or reaction.emoji == MESSAGE_REFRESH_REACTION
+        ):
             return
 
         # If message_reacted to isn't sent by self,
@@ -132,34 +137,42 @@ class IonicTraces(DMux):
         )
         time_author = message_replied_to.author
         if time_author.id != user.id:
+            try:
+                await reaction.remove(user)
+            except d.errors.Forbidden:
+                # If removing reactions is not allowed,
+                # ignore this step
+                pass
             return
 
-        # Delete the message if all checks have been passed
-        await message_reacted_to.delete()
+        if reaction.emoji == MESSAGE_DELETE_REACTION:
+            # Delete the message if all checks have been passed
+            await message_reacted_to.delete()
+        elif reaction.emoji == MESSAGE_REFRESH_REACTION:
+            try:
+                await reaction.remove(user)
+            except d.errors.Forbidden:
+                # If removing reactions is not allowed,
+                # ignore this step
+                pass
+
+            time_list = await self._time_list_from_string(message_replied_to.content)
+            if len(time_list) == 0:
+                await message_reacted_to.edit("*No Times Specified*")
+                return
+
+            # Find the user in the db
+            user = await self._get_user_by_id(time_author.id)
+            await message_reacted_to.edit(
+                content=await self._reply_from_user_and_times(user, time_list)
+            )
 
     async def conversion_handler(self, message: d.Message):
         # Pull properties we want from the message
         user_id = message.author.id
         content = message.content
 
-        # Remove emoji, animated emoji, mentions, channels etc
-        # from discord text
-        content = rgx_d_elems.sub("", content)
-
-        # Find time tokens
-        time_list = rgx_dt_markers.findall(content)
-        # Remove the angle brackets
-        time_list = [time[1:-1] for time in time_list]
-        # Ignore links
-        time_list = [time for time in time_list if not time.startswith("http")]
-        # Timefhuman always seems to throw a value error. Ignore these for now
-        try:
-            # Parse the human readable time to datetime format
-            time_list = [timefhuman(time) for time in time_list]
-        except ValueError:
-            pass
-        # Filter out items we don't understand
-        time_list = [time for time in time_list if time != []]
+        time_list = await self._time_list_from_string(content)
 
         # If no times are specified/understood, skip the message
         if len(time_list) == 0:
@@ -176,6 +189,7 @@ class IonicTraces(DMux):
                 "You haven't registered with me yet or registration has failed\n"
                 + "Sending you a registration link in a dm..."
             )
+            await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
             await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
             await self.register_user(message)
             while True:
@@ -196,6 +210,7 @@ class IonicTraces(DMux):
             # Use the time list and the user object to create a reply
             reply = await self._reply_from_user_and_times(user, time_list)
             response_msg = await message.reply(reply)
+            await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
             await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
 
     async def registration_handler(self, message: d.Message):
@@ -295,6 +310,28 @@ class IonicTraces(DMux):
         reply = "<t:" + reply + ":F>"
         reply = "That's " + reply + " auto-converted to local time."
         return reply
+
+    @staticmethod
+    async def _time_list_from_string(text: str) -> List[dt.datetime]:
+        # Remove emoji, animated emoji, mentions, channels etc
+        # from discord text
+        text = rgx_d_elems.sub("", text)
+
+        # Find time tokens
+        time_list = rgx_dt_markers.findall(text)
+        # Remove the angle brackets
+        time_list = [time[1:-1] for time in time_list]
+        # Ignore links
+        time_list = [time for time in time_list if not time.startswith("http")]
+        # Timefhuman always seems to throw a value error. Ignore these for now
+        try:
+            # Parse the human readable time to datetime format
+            time_list = [timefhuman(time) for time in time_list]
+        except ValueError:
+            pass
+        # Filter out items we don't understand
+        time_list = [time for time in time_list if time != []]
+        return time_list
 
 
 if __name__ == "__main__":
