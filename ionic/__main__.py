@@ -161,8 +161,10 @@ class IonicTraces(DMux):
                 await message_reacted_to.edit("*No Times Specified*")
                 return
 
-            # Find the user in the db
+            # Find the user in the db, stop if not found
             user = await self._get_user_by_id(time_author.id)
+            if user is None:
+                return
             await message_reacted_to.edit(
                 content=await self._reply_from_user_and_times(user, time_list)
             )
@@ -195,10 +197,11 @@ class IonicTraces(DMux):
             while True:
                 await asyncio.sleep(10)
                 user: User = await self._get_user_by_id(user_id)
-                if user is None or user.tz == "":
-                    continue
                 if dt.datetime.now(tz=utc) - user.update_dt > REGISTRATION_TIMEOUT:
+                    await response_msg.delete()
                     break
+                elif user is None or user.tz == "":
+                    continue
                 reply = await self._reply_from_user_and_times(user, time_list)
                 try:
                     await response_msg.edit(content=reply)
@@ -284,7 +287,7 @@ class IonicTraces(DMux):
         await message.reply("You have successfully deregistered")
 
     @staticmethod
-    async def _get_user_by_id(id: int) -> User:
+    async def _get_user_by_id(id: int) -> Union[User, None]:
         """Returns the user or None if they aren't found in the db"""
         async with db_session() as session:
             async with session.begin():
