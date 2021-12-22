@@ -8,7 +8,6 @@ from typing import List, Union
 
 import discord as d
 import sqlalchemy as sql
-from sqlalchemy.sql.functions import user
 import uvloop
 from arrow import Arrow
 from dmux import DMux
@@ -16,6 +15,7 @@ from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
+from sqlalchemy.sql.functions import user
 from timefhuman import timefhuman
 
 from . import cfg
@@ -101,11 +101,17 @@ class IonicTraces(DMux):
                     return_when=ALL_COMPLETED,
                 )
 
-    async def on_reaction_add(self, reaction: d.Reaction, user: d.User):
-        message_by_bot: d.Message = reaction.message
-        reaction_emoji = reaction.emoji
-        message_by_bot.remove_reaction
-        reacting_user_id: int = user.id
+    async def on_raw_reaction_add(self, payload: d.RawReactionActionEvent):
+        try:
+            channel = await self.client.fetch_channel(payload.channel_id)
+            message_by_bot: d.Message = await channel.fetch_message(payload.message_id)
+            reaction_emoji = payload.emoji.name
+            reacting_user = await self.client.fetch_user(payload.user_id)
+        except d.errors.Forbidden:
+            # Ignore forbidden errors for this block of fetches
+            # If we get a forbidden error here, this means that we don't have permissions
+            # to see this channel, its messages and/or its reactions
+            pass
 
         # Do not react to servers we are not supposed to
         if message_by_bot.guild.id != self.server_id:
@@ -118,7 +124,7 @@ class IonicTraces(DMux):
         # Do not respond to the specific reactions added by self
         # We can still respond to reactions that match ours,
         # but are added by others
-        if reacting_user_id == self.client.user.id:
+        if reacting_user.id == self.client.user.id:
             return
 
         # Do not respond to emoji we don't care about
@@ -128,21 +134,15 @@ class IonicTraces(DMux):
         ):
             return
 
-        # If message_reacted to isn't sent by self,
-        # ignore it
-        if message_by_bot.author != self.client.user:
-            return
-
         # If reaction is by user that did not trigger its creation
         # ignore it
-        channel = message_by_bot.channel
-        message_replied_to = await channel.fetch_message(
+        message_by_user = await channel.fetch_message(
             message_by_bot.reference.message_id
         )
-        time_author = message_replied_to.author
-        if time_author.id != reacting_user_id:
+        time_author = message_by_user.author
+        if time_author.id != reacting_user.id:
             try:
-                await message_by_bot.remove_reaction(reaction_emoji, user)
+                await message_by_bot.remove_reaction(reaction_emoji, reacting_user)
             except d.errors.Forbidden:
                 # If removing reactions is not allowed,
                 # ignore this step
@@ -154,13 +154,13 @@ class IonicTraces(DMux):
             await message_by_bot.delete()
         elif reaction_emoji == MESSAGE_REFRESH_REACTION:
             try:
-                await message_by_bot.remove_reaction(reaction_emoji, user)
+                await message_by_bot.remove_reaction(reaction_emoji, reacting_user)
             except d.errors.Forbidden:
                 # If removing reactions is not allowed,
                 # ignore this step
                 pass
 
-            time_list = await self._time_list_from_string(message_replied_to.content)
+            time_list = await self._time_list_from_string(message_by_user.content)
             if len(time_list) == 0:
                 await message_by_bot.edit("*No Times Specified*")
                 return
