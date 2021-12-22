@@ -111,7 +111,7 @@ class IonicTraces(DMux):
             # Ignore forbidden errors for this block of fetches
             # If we get a forbidden error here, this means that we don't have permissions
             # to see this channel, its messages and/or its reactions
-            pass
+            return
 
         # Do not react to servers we are not supposed to
         if message_by_bot.guild.id != self.server_id:
