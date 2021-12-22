@@ -338,6 +338,8 @@ class IonicTraces(DMux):
             pass
         # Filter out items we don't understand
         time_list = [time for time in time_list if time != []]
+        # Filter out items in an incorrect format
+        time_list = [time for time in time_list if isinstance(time, dt.datetime)]
         return time_list
 
 
