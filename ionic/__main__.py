@@ -102,55 +102,59 @@ class IonicTraces(DMux):
                 )
 
     async def on_reaction_add(self, reaction: d.Reaction, user: d.User):
+        message_by_bot: d.Message = reaction.message
+        reaction_emoji = reaction.emoji
+        message_by_bot.remove_reaction
+        reacting_user_id: int = user.id
+
         # Do not react to servers we are not supposed to
-        if reaction.message.guild.id != self.server_id:
+        if message_by_bot.guild.id != self.server_id:
             return
 
         # Do not respond to reactions on messages not sent by self
-        if reaction.message.author.id != self.client.user.id:
+        if message_by_bot.author.id != self.client.user.id:
             return
 
         # Do not respond to the specific reactions added by self
         # We can still respond to reactions that match ours,
         # but are added by others
-        if user.id == self.client.user.id:
+        if reacting_user_id == self.client.user.id:
             return
 
         # Do not respond to emoji we don't care about
         if not (
-            reaction.emoji == MESSAGE_DELETE_REACTION
-            or reaction.emoji == MESSAGE_REFRESH_REACTION
+            reaction_emoji == MESSAGE_DELETE_REACTION
+            or reaction_emoji == MESSAGE_REFRESH_REACTION
         ):
             return
 
         # If message_reacted to isn't sent by self,
         # ignore it
-        message_reacted_to = reaction.message
-        if message_reacted_to.author != self.client.user:
+        if message_by_bot.author != self.client.user:
             return
 
         # If reaction is by user that did not trigger its creation
         # ignore it
-        channel = reaction.message.channel
+        channel = message_by_bot.channel
         message_replied_to = await channel.fetch_message(
-            message_reacted_to.reference.message_id
+            message_by_bot.reference.message_id
         )
         time_author = message_replied_to.author
-        if time_author.id != user.id:
+        if time_author.id != reacting_user_id:
             try:
-                await reaction.remove(user)
+                await message_by_bot.remove_reaction(reaction_emoji, user)
             except d.errors.Forbidden:
                 # If removing reactions is not allowed,
                 # ignore this step
                 pass
             return
 
-        if reaction.emoji == MESSAGE_DELETE_REACTION:
+        if reaction_emoji == MESSAGE_DELETE_REACTION:
             # Delete the message if all checks have been passed
-            await message_reacted_to.delete()
-        elif reaction.emoji == MESSAGE_REFRESH_REACTION:
+            await message_by_bot.delete()
+        elif reaction_emoji == MESSAGE_REFRESH_REACTION:
             try:
-                await reaction.remove(user)
+                await message_by_bot.remove_reaction(reaction_emoji, user)
             except d.errors.Forbidden:
                 # If removing reactions is not allowed,
                 # ignore this step
@@ -158,15 +162,15 @@ class IonicTraces(DMux):
 
             time_list = await self._time_list_from_string(message_replied_to.content)
             if len(time_list) == 0:
-                await message_reacted_to.edit("*No Times Specified*")
+                await message_by_bot.edit("*No Times Specified*")
                 return
 
             # Find the user in the db, stop if not found
-            user = await self._get_user_by_id(time_author.id)
-            if user is None or user.tz == "":
+            user_from_db = await self._get_user_by_id(time_author.id)
+            if user_from_db is None or user_from_db.tz == "":
                 return
-            await message_reacted_to.edit(
-                content=await self._reply_from_user_and_times(user, time_list)
+            await message_by_bot.edit(
+                content=await self._reply_from_user_and_times(user_from_db, time_list)
             )
 
     async def conversion_handler(self, message: d.Message):
