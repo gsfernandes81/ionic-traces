@@ -134,11 +134,20 @@ class IonicTraces(DMux):
         ):
             return
 
-        # If reaction is by user that did not trigger its creation
-        # ignore it
-        message_by_user = await channel.fetch_message(
-            message_by_bot.reference.message_id
-        )
+        try:
+            # If reaction is by user that did not trigger its creation
+            # ignore it
+            message_by_user = await channel.fetch_message(
+                message_by_bot.reference.message_id
+            )
+        except d.errors.NotFound:
+            # If the message was not found, say so and return
+            await message_by_bot.edit(
+                "*Message disappeared!*  : O \n" + "*Deleting in 10...*"
+            )
+            await message_by_bot.delete(delay=10)
+            return
+
         time_author = message_by_user.author
         if time_author.id != reacting_user.id:
             try:
