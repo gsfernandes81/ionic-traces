@@ -6,6 +6,7 @@ import re
 from asyncio.tasks import ALL_COMPLETED
 from typing import List, Union
 
+import dateparser
 import discord as d
 import sqlalchemy as sql
 import uvloop
@@ -16,7 +17,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
 from sqlalchemy.sql.functions import user
-from timefhuman import timefhuman
 
 from . import cfg
 from .cfg import REGISTRATION_TIMEOUT
@@ -343,14 +343,17 @@ class IonicTraces(DMux):
         time_list = [time[1:-1] for time in time_list]
         # Ignore links
         time_list = [time for time in time_list if not time.startswith("http")]
-        # Timefhuman always seems to throw a value error. Ignore these for now
-        try:
-            # Parse the human readable time to datetime format
-            time_list = [timefhuman(time) for time in time_list]
-        except ValueError:
-            pass
+        # Parse the human readable time to datetime format
+        time_list = [
+            dateparser.parse(
+                time,
+                languages=["en"],
+                settings={"PREFER_DATES_FROM": "future"},
+            )
+            for time in time_list
+        ]
         # Filter out items we don't understand
-        time_list = [time for time in time_list if time != []]
+        time_list = [time for time in time_list if time != None]
         # Filter out items in an incorrect format
         time_list = [time for time in time_list if isinstance(time, dt.datetime)]
         return time_list

@@ -18,8 +18,8 @@ pytz = "*"
 quart = "*"
 regex = "*"
 SQLAlchemy = "*"
-timefhuman = {git = "https://github.com/alvinwan/timefhuman.git"}
 uvloop = "*"
+dateparser = "*"
 
 [dev-packages]
 "discord.py-stubs" = "*"
