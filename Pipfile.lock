@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6df5ba0bd195979e9561ba5434cafa542c3124d956177923649a54cc424b4a8b"
+            "sha256": "c94273086267cb076c0dec4e8804966e21b5600a658ca7d0b2203165f53f6f30"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -237,7 +237,7 @@
         },
         "dmux": {
             "git": "ssh://git@github.com/gs729/dmux.git",
-            "ref": "599cd6b285015d5b633bba256168b861a8e16bf2"
+            "ref": "c32ad123a10240fa6bed2678ba007940c651771f"
         },
         "frozenlist": {
             "hashes": [

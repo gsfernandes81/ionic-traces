@@ -7,7 +7,7 @@ name = "pypi"
 "discord.py" = { editable = true, ref = "master", git = "https://github.com/Rapptz/discord.py.git" }
 arrow = "*"
 asyncpg = "*"
-dmux = { git = "ssh://git@github.com/gs729/dmux.git", ref = "599cd6b" }
+dmux = { git = "ssh://git@github.com/gs729/dmux.git", ref = "c32ad123" }
 hypercorn = "*"
 jinja2 = "*"
 postgres = "*"
