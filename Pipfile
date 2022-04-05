@@ -4,10 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"discord.py" = {editable = true, ref = "master", git = "https://github.com/Rapptz/discord.py.git"}
+"discord.py" = { editable = true, ref = "master", git = "https://github.com/Rapptz/discord.py.git" }
 arrow = "*"
 asyncpg = "*"
-dmux = {git = "ssh://git@github.com/gs729/dmux.git"}
+dmux = { git = "ssh://git@github.com/gs729/dmux.git", ref = "599cd6b" }
 hypercorn = "*"
 jinja2 = "*"
 postgres = "*"
