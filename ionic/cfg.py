@@ -46,3 +46,7 @@ if db_url.startswith("postgres"):
 db_session_kwargs = {"expire_on_commit": False, "class_": AsyncSession}
 
 REGISTRATION_TIMEOUT = dt.timedelta(minutes=10)
+
+patron_role_id = _getenv("PATRON_ROLE_ID") or 309440016440885259
+patrons_channel_id = _getenv("PATRONS_CHANNEL_ID") or 309701912452661248
+patron_check_interval = _getenv("PATRON_CHECK_INTERVAL") or 120

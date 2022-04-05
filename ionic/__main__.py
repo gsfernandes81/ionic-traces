@@ -75,6 +75,7 @@ class IonicTraces(DMux):
             )
             async with db_engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
+            await self.notify_for_new_patrons()
 
     async def on_message(self, message: d.Message):
         try:
@@ -302,6 +303,28 @@ class IonicTraces(DMux):
                 await session.execute(delete(User).where(User.id == message.author.id))
 
         await message.reply("You have successfully deregistered")
+
+    async def notify_for_new_patrons(self):
+        first_run: bool = True
+        members = await self.client.fetch_guild(self.server_id).members
+        patrons_list = []
+        patrons_channel = await self.client.fetch_channel(cfg.patrons_channel_ID)
+        while True:
+            for member in members:
+                if self._is_patron(member) and not member.id in patrons_list:
+                    patrons_list.append(member.id)
+                    if not first_run:
+                        await patrons_channel.send(
+                            "Welcome <@{}> to the Patron's Lounge!".format(member.id)
+                        )
+            await asyncio.sleep(cfg.patron_check_interval)
+            first_run = False
+
+    @staticmethod
+    def _is_patron(member: d.Member):
+        for role in member.roles:
+            if role.id == cfg.patron_role_id:
+                return True
 
     @staticmethod
     async def _get_user_by_id(id: int) -> Union[User, None]:
