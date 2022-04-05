@@ -314,7 +314,7 @@ class IonicTraces(DMux):
             return
         if patron_role in after.roles:
             await patron_channel.send(
-                "Welcome <@{}> to the Patron's lounge!".format(after.id)
+                cfg.patrons_welcome_text.format(after.id)
             )
 
     @staticmethod
