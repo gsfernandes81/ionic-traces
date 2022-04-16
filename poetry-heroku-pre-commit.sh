@@ -9,7 +9,7 @@
 
 git diff --cached --name-only | if grep --quiet "^poetry.lock$"
 then
-	poetry export -f requirements.txt -o requirements.txt
+	poetry export --without-hashes -f requirements.txt -o requirements.txt
 	git add requirements.txt
 fi
 echo "[poetry] requirements.txt updated"
