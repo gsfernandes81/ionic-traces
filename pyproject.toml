@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "ionic-traces"
+version = "1.0"
+description = ""
+authors = ["GS <gsfernandes81@gmail.com>"]
+license = "Creative Commons Attribution-NonCommercial-NoDerivs 2.0 Generic License"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+"discord.py" = { git = "https://github.com/Rapptz/discord.py.git", rev = "1bfe6b2" }
+arrow = "^1.2.2"
+asyncpg = "^0.25.0"
+dmux = { git = "ssh://git@github.com/gs729/dmux.git", rev = "779712ad" }
+hypercorn = "^0.13.2"
+Jinja2 = "^3.1.1"
+postgres = "^4.0"
+psycopg2-binary = "^2.9.3"
+psycopg2-pool = "^1.1"
+pytz = "^2022.1"
+quart = "^0.17.0"
+regex = "*"
+uvloop = "^0.16.0"
+dateparser = "^1.1.1"
+SQLAlchemy = "^1.4.35"
+
+[tool.poetry.dev-dependencies]
+bandit = "^1.7.4"
+black = "^22.3.0"
+pyflakes = "^2.4.0"
+rope = "^1.0.0"
+pre-commit = "^2.18.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -39,6 +39,8 @@ def main():
 
     intents = d.Intents.default()
     intents.members = True
+    intents.message_content = True
+    intents.reactions = True
 
     dmux = DMux(intents=intents, guild_subscriptions=True)
     for server in cfg.server_list:
@@ -313,9 +315,7 @@ class IonicTraces(DMux):
         if patron_role in before.roles:
             return
         if patron_role in after.roles:
-            await patron_channel.send(
-                cfg.patrons_welcome_text.format(after.id)
-            )
+            await patron_channel.send(cfg.patrons_welcome_text.format(after.id))
 
     @staticmethod
     async def _get_user_by_id(id: int) -> Union[User, None]:
