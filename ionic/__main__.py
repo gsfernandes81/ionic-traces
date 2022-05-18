@@ -103,6 +103,7 @@ class IonicTraces(DMux):
                         self.registration_handler(message),
                         self.deregister_handler(message),
                         self.conversion_handler(message),
+                        self.pizza_message_handler(message),
                     ],
                     return_when=ALL_COMPLETED,
                 )
@@ -238,6 +239,10 @@ class IonicTraces(DMux):
             response_msg = await message.reply(reply)
             await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
             await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
+
+    async def pizza_message_handler(self, message: d.Message):
+        if ("pizza" in message.content) or ("🍕" in message.content):
+            await message.add_reaction("🍕")
 
     async def registration_handler(self, message: d.Message):
         if message.content == "?time" and (
