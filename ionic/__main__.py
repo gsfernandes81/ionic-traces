@@ -241,7 +241,7 @@ class IonicTraces(DMux):
             await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
 
     async def pizza_message_handler(self, message: d.Message):
-        if ("pizza" in message.content) or ("🍕" in message.content):
+        if ("pizza" in message.content.lower()) or ("🍕" in message.content):
             await message.add_reaction("🍕")
 
     async def registration_handler(self, message: d.Message):
