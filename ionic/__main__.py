@@ -260,8 +260,8 @@ class IonicTraces(DMux):
         if content.endswith("."):
             content[:-1]
         content += "* 👀"
-        await message.reply(content)
-        await message.add_reaction(MESSAGE_DELETE_REACTION)
+        reply = await message.reply(content)
+        await reply.add_reaction(MESSAGE_DELETE_REACTION)
 
     async def registration_handler(self, message: d.Message):
         if message.content == "?time" and (
