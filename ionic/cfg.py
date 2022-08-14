@@ -1,4 +1,5 @@
 import datetime as dt
+import re
 from os import getenv as _getenv
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,15 @@ server_list = server_list.split(",")
 server_list = [server.strip() for server in server_list]
 server_list = [server.split(":") for server in server_list]
 server_list = [[element.strip() for element in server] for server in server_list]
+# Parsing for extra features param
+server_list = [(*server[0:2], str(server[2]).lower() == "t") if len(server) == 3 else server for server in server_list]
+
+# Substitutions for extra_features=True guilds
+substitutions = str(_getenv("SUBSTITUTIONS"))
+substitutions = substitutions.split(";")
+substitutions = [sub.split(":") for sub in substitutions]
+substitutions = [[elem.strip() for elem in sub] for sub in substitutions]
+substitutions = [(re.compile("(\s+|^)"+ sub[0] + "(\s+|$)", re.IGNORECASE), " **" + sub[1] + "** ") for sub in substitutions]
 
 
 # Registration URL

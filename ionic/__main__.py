@@ -56,7 +56,7 @@ def main():
 
 
 class IonicTraces(DMux):
-    def __init__(self, server_id: int, reg_channel_id: Union[int, None] = None):
+    def __init__(self, server_id: int, reg_channel_id: Union[int, None] = None, extra_features: Union[bool, None] = False):
         super().__init__()
         # The id of the server this instance is handling
         self.server_id = int(server_id)
@@ -64,6 +64,7 @@ class IonicTraces(DMux):
         self.reg_channel_id = (
             int(reg_channel_id) if reg_channel_id is not None else None
         )
+        self.extra_features = extra_features
 
     async def on_connect(self):
         try:
@@ -104,6 +105,7 @@ class IonicTraces(DMux):
                         self.deregister_handler(message),
                         self.conversion_handler(message),
                         self.pizza_message_handler(message),
+                        self.destiny_season_handler(message),
                     ],
                     return_when=ALL_COMPLETED,
                 )
@@ -243,6 +245,22 @@ class IonicTraces(DMux):
     async def pizza_message_handler(self, message: d.Message):
         if ("pizza" in message.content.lower()) or ("🍕" in message.content):
             await message.add_reaction("🍕")
+
+    async def destiny_season_handler(self, message: d.Message):
+        if not self.extra_features:
+            return
+        if not any([sub[0].search(message.content) for sub in cfg.substitutions]):
+            return
+        
+        content = message.content
+        
+        for sub in cfg.substitutions:
+            content = sub[0].sub(sub[1], content)
+        
+        if content.endswith("."):
+            content[:-1]
+        content += "* 👀"
+        await message.reply(content)
 
     async def registration_handler(self, message: d.Message):
         if message.content == "?time" and (
