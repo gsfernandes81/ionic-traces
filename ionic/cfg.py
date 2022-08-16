@@ -26,7 +26,7 @@ substitutions = str(_getenv("SUBSTITUTIONS"))
 substitutions = substitutions.split(";")
 substitutions = [sub.split(":") for sub in substitutions]
 substitutions = [[elem.strip() for elem in sub] for sub in substitutions]
-substitutions = [(re.compile("(\s+|^)"+ sub[0] + "(\s+|$)", re.IGNORECASE), " **" + sub[1] + "** ") for sub in substitutions]
+substitutions = [(re.compile("(\s+|^)"+ sub[0] + "(\s+|(?![\w_]))", re.IGNORECASE), " **" + sub[1] + "** ") for sub in substitutions]
 
 
 # Registration URL
