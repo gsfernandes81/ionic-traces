@@ -22,11 +22,13 @@ server_list = [[element.strip() for element in server] for server in server_list
 server_list = [(*server[0:2], str(server[2]).lower() == "t") if len(server) == 3 else server for server in server_list]
 
 # Substitutions for extra_features=True guilds
-substitutions = str(_getenv("SUBSTITUTIONS"))
-substitutions = substitutions.split(";")
-substitutions = [sub.split(":") for sub in substitutions]
-substitutions = [[elem.strip() for elem in sub] for sub in substitutions]
-substitutions = [(re.compile("(\s+|^)"+ sub[0] + "(\s+|(?![\w_]))", re.IGNORECASE), " **" + sub[1] + "** ") for sub in substitutions]
+substitutions = _getenv("SUBSTITUTIONS")
+if substitutions is not None:
+    substitutions = str(_getenv("SUBSTITUTIONS"))
+    substitutions = substitutions.split(";")
+    substitutions = [sub.split(":") for sub in substitutions]
+    substitutions = [[elem.strip() for elem in sub] for sub in substitutions]
+    substitutions = [(re.compile("(\s+|^)"+ sub[0] + "(\s+|(?![\w_]))", re.IGNORECASE), " **" + sub[1] + "** ") for sub in substitutions]
 
 
 # Registration URL
