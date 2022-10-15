@@ -367,7 +367,7 @@ class IonicTraces(DMux):
                 ) and console_role not in member.roles:
                     await member.add_roles(console_role)
 
-            await response.edit(response.content + "\nTransfer complete\nChecking...")
+            response = await response.edit(response.content + "\nTransfer complete\nChecking...")
             total = 0
             failed = 0
             async for member in guild.fetch_members():
@@ -410,7 +410,7 @@ class IonicTraces(DMux):
                 ) and console_role not in member.roles:
                     pass
 
-            await response.edit(response.content + "\nTransfer complete\nChecking...")
+            response = await response.edit(response.content + "\nTransfer complete\nChecking...")
             total = 0
             failed = 0
             async for member in guild.fetch_members():
