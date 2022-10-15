@@ -9,7 +9,6 @@ from typing import List, Union
 import dateparser
 import discord as d
 import sqlalchemy as sql
-import tqdm
 import uvloop
 from arrow import Arrow
 from dmux import DMux
@@ -18,6 +17,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
 from sqlalchemy.sql.functions import user
+from tqdm.asyncio import tqdm
 
 from . import cfg
 from .cfg import REGISTRATION_TIMEOUT
@@ -360,7 +360,7 @@ class IonicTraces(DMux):
                 + "new role: {}".format(console_role.name)
             )
 
-            for member in tqdm.tqdm(await guild.fetch_members()):
+            async for member in tqdm(guild.fetch_members()):
                 member: d.Member
                 if (
                     xb_role in member.roles or ps_role in member.roles
@@ -370,7 +370,7 @@ class IonicTraces(DMux):
             await response.edit(response.content + "\nTransfer complete\nChecking...")
             total = 0
             failed = 0
-            for member in await guild.fetch_members():
+            async for member in guild.fetch_members():
                 member: d.Member
 
                 total += 1
@@ -403,7 +403,7 @@ class IonicTraces(DMux):
                 + "new role: {}".format(console_role.name)
             )
 
-            for member in tqdm.tqdm(await guild.fetch_members()):
+            async for member in tqdm(guild.fetch_members()):
                 member: d.Member
                 if (
                     xb_role in member.roles or ps_role in member.roles
@@ -413,7 +413,7 @@ class IonicTraces(DMux):
             await response.edit(response.content + "\nTransfer complete\nChecking...")
             total = 0
             failed = 0
-            for member in await guild.fetch_members():
+            async for member in guild.fetch_members():
                 member: d.Member
 
                 total += 1
