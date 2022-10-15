@@ -365,7 +365,7 @@ class IonicTraces(DMux):
                 if (
                     xb_role in member.roles or ps_role in member.roles
                 ) and console_role not in member.roles:
-                    await member.add_roles(console_role)
+                    await member.add_roles(console_role, reason="Migrate to reaction roles")
 
             response = await response.edit(response.content + "\nTransfer complete\nChecking...")
             total = 0
