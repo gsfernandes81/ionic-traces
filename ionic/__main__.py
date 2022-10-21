@@ -133,6 +133,10 @@ class IonicTraces(DMux):
         if reaction_emoji == "🍕" and reacting_user.id != self.client.user.id:
             await message_by_bot.add_reaction("🍕")
 
+        # Taco
+        if reaction_emoji == "🌮" and reacting_user.id != self.client.user.id:
+            await message_by_bot.add_reaction("🌮")
+
         # Do not respond to reactions on messages not sent by self
         if message_by_bot.author.id != self.client.user.id:
             return
