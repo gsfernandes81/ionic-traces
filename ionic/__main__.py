@@ -109,7 +109,6 @@ class IonicTraces(DMux):
                         self.deregister_handler(message),
                         self.conversion_handler(message),
                         self.pizza_message_handler(message),
-                        self.destiny_season_handler(message),
                     ],
                     return_when=ALL_COMPLETED,
                 )
@@ -249,23 +248,8 @@ class IonicTraces(DMux):
     async def pizza_message_handler(self, message: d.Message):
         if ("pizza" in message.content.lower()) or ("🍕" in message.content):
             await message.add_reaction("🍕")
-
-    async def destiny_season_handler(self, message: d.Message):
-        if not self.extra_features:
-            return
-        if not any([sub[0].search(message.content) for sub in cfg.substitutions]):
-            return
-
-        content = message.content
-
-        for sub in cfg.substitutions:
-            content = sub[0].sub(sub[1], content)
-
-        if content.endswith("."):
-            content[:-1]
-        content += "* 👀"
-        reply = await message.reply(content)
-        await reply.add_reaction(MESSAGE_DELETE_REACTION)
+        if ("taco" in message.content.lower()) or ("🌮" in message.content) and self.extra_features:
+            await message.add_reaction("🌮")
 
     async def registration_handler(self, message: d.Message):
         if message.content == "?time" and (
