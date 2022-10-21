@@ -344,6 +344,13 @@ class IonicTraces(DMux):
         return user if user is None else user[0]
 
     async def _reply_from_user_and_times(self, user: User, time_list: List) -> str:
+        time_list = await self._convert_time_list_fm_user(user, time_list)
+        # Create reply text
+        reply = ", ".join(time_list)
+        reply = "That's " + reply + " auto-converted to local time."
+        return reply
+
+    async def _convert_time_list_fm_user(self, user: User, time_list: List) -> List[str]:
         # Get the user's TimeZone
         tz = str(user.tz)
 
@@ -355,11 +362,9 @@ class IonicTraces(DMux):
         unix_time_list = [
             int((time - Arrow(1970, 1, 1)).total_seconds()) for time in utc_time_list
         ]
-        # Create reply text
-        reply = ":t>, <t:".join([str(time) for time in unix_time_list])
-        reply = "<t:" + reply + ":t>"
-        reply = "That's " + reply + " auto-converted to local time."
-        return reply
+        discord_time_list = ["<t:" + str(time) + ":t>" for time in unix_time_list]
+        return discord_time_list
+
 
     @staticmethod
     async def _time_list_from_string(text: str) -> List[dt.datetime]:
