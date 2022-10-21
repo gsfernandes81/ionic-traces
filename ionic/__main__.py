@@ -16,8 +16,6 @@ from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
-from sqlalchemy.sql.functions import user
-from tqdm.asyncio import tqdm
 
 from . import cfg
 from .cfg import REGISTRATION_TIMEOUT
@@ -112,7 +110,6 @@ class IonicTraces(DMux):
                         self.conversion_handler(message),
                         self.pizza_message_handler(message),
                         self.destiny_season_handler(message),
-                        self.dmb_migration_handler(message),
                     ],
                     return_when=ALL_COMPLETED,
                 )
@@ -339,93 +336,6 @@ class IonicTraces(DMux):
                 await session.execute(delete(User).where(User.id == message.author.id))
 
         await message.reply("You have successfully deregistered")
-
-    async def dmb_migration_handler(self, message: d.Message):
-        if (
-            message.author.id == 655755547211202582
-            and message.content == "migrate"
-            and message.guild.id == 309437358225489925
-        ):
-            guild = message.guild
-            await guild.fetch_roles()
-            ps_role = guild.get_role(319669090719629314)
-            xb_role = guild.get_role(320421673209954304)
-            est_members = len(xb_role.members) + len(ps_role.members)
-            console_role = guild.get_role(1007658557119942757)
-
-            response = await message.reply(
-                "Working,\n"
-                + "estimated members: {}\n".format(est_members)
-                + "old roles: {}, {}\n".format(xb_role.name, ps_role.name)
-                + "new role: {}".format(console_role.name)
-            )
-
-            async for member in tqdm(guild.fetch_members()):
-                member: d.Member
-                if (
-                    xb_role in member.roles or ps_role in member.roles
-                ) and console_role not in member.roles:
-                    await member.add_roles(console_role, reason="Migrate to reaction roles")
-
-            response = await response.edit(response.content + "\nTransfer complete\nChecking...")
-            total = 0
-            failed = 0
-            async for member in guild.fetch_members():
-                member: d.Member
-
-                total += 1
-
-                if (
-                    xb_role in member.roles or ps_role in member.roles
-                ) and console_role not in member.roles:
-                    failed += 1
-
-            await response.edit(
-                response.content + "\nTotal: {}, Not migrated: {}".format(total, failed)
-            )
-
-        if (
-            message.author.id == 655755547211202582
-            and message.content == "dry_run"
-            and message.guild.id == 309437358225489925
-        ):
-            guild = message.guild
-            await guild.fetch_roles()
-            ps_role = guild.get_role(319669090719629314)
-            xb_role = guild.get_role(320421673209954304)
-            est_members = len(xb_role.members) + len(ps_role.members)
-            console_role = guild.get_role(1007658557119942757)
-
-            response = await message.reply(
-                "Working,\n"
-                + "estimated members: {}\n".format(est_members)
-                + "old roles: {}, {}\n".format(xb_role.name, ps_role.name)
-                + "new role: {}".format(console_role.name)
-            )
-
-            async for member in tqdm(guild.fetch_members()):
-                member: d.Member
-                if (
-                    xb_role in member.roles or ps_role in member.roles
-                ) and console_role not in member.roles:
-                    pass
-
-            response = await response.edit(response.content + "\nTransfer complete\nChecking...")
-            total = 0
-            failed = 0
-            async for member in guild.fetch_members():
-                member: d.Member
-
-                total += 1
-
-                if (
-                    xb_role in member.roles or ps_role in member.roles
-                ) and console_role not in member.roles:
-                    failed += 1
-
-            await response.edit(
-                response.content + "\nTotal: {}, Not migrated: {}".format(total, failed)
-            )
 
     async def on_member_update(self, before, after):
         patron_role = self.client.get_guild(self.server_id).get_role(cfg.patron_role_id)
