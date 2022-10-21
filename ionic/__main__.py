@@ -356,8 +356,8 @@ class IonicTraces(DMux):
             int((time - Arrow(1970, 1, 1)).total_seconds()) for time in utc_time_list
         ]
         # Create reply text
-        reply = ":F>, <t:".join([str(time) for time in unix_time_list])
-        reply = "<t:" + reply + ":F>"
+        reply = ":t>, <t:".join([str(time) for time in unix_time_list])
+        reply = "<t:" + reply + ":t>"
         reply = "That's " + reply + " auto-converted to local time."
         return reply
 
