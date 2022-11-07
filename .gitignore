@@ -1,3 +1,4 @@
 .env
 *.pyc
 ToDo
+.python-version

@@ -7,38 +7,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Discord API Token
 discord_token = _getenv("DISCORD_TOKEN")
 
-# Server List
-# Format as follows
-# Servers separated by commas ","
-# Server with separate registration channels have
-# Registration channel ids after : before the next comma
-# Whitespaces are allowed before/after ids and symbols
-server_list = str(_getenv("SERVER_LIST")).strip()
-server_list = server_list.split(",")
-server_list = [server.strip() for server in server_list]
-server_list = [server.split(":") for server in server_list]
-server_list = [[element.strip() for element in server] for server in server_list]
-# Parsing for extra features param
-server_list = [
-    (*server[0:2], str(server[2]).lower() == "t") if len(server) == 3 else server
-    for server in server_list
-]
 
-# Substitutions for extra_features=True guilds
-substitutions = _getenv("SUBSTITUTIONS")
-if substitutions is not None:
-    substitutions = str(_getenv("SUBSTITUTIONS"))
-    substitutions = substitutions.split(";")
-    substitutions = [sub.split(":") for sub in substitutions]
-    substitutions = [[elem.strip() for elem in sub] for sub in substitutions]
-    substitutions = [
-        (
-            re.compile("(\s+|^)" + sub[0] + "(\s+|(?![\w_]))", re.IGNORECASE),
-            " **" + sub[1] + "** ",
-        )
-        for sub in substitutions
-    ]
+# Pizza enabled servers
+pizza_servers = str(_getenv("PIZZA_SERVER_LIST")).strip().split(",")
+pizza_servers = [int(server.strip()) for server in pizza_servers]
 
+# Taco enabled servers
+taco_servers = str(_getenv("TACO_SERVER_LIST")).strip().split(",")
+taco_servers = [int(server.strip()) for server in taco_servers]
+
+# DMB Patrons special config
+patron_role_id, patrons_channel_id, patrons_welcome_text = (
+    str(_getenv("DMB_PATRONS_CONFIG")).strip().split(",")
+)
+patron_role_id = int(patron_role_id)
+patrons_channel_id = int(patrons_channel_id)
+patrons_welcome_text = patrons_welcome_text.strip()
 
 # Registration URL
 app_url = str(_getenv("APP_URL"))
@@ -67,7 +51,3 @@ if db_url.startswith("postgres"):
 db_session_kwargs = {"expire_on_commit": False, "class_": AsyncSession}
 
 REGISTRATION_TIMEOUT = dt.timedelta(minutes=10)
-
-patron_role_id = int(_getenv("PATRON_ROLE_ID"))
-patrons_channel_id = int(_getenv("PATRONS_CHANNEL_ID"))
-patrons_welcome_text = str(_getenv("PATRONS_WELCOME_TEXT"))
