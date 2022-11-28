@@ -1,4 +1,5 @@
 import datetime as dt
+import ssl
 import re
 from os import getenv as _getenv
 
@@ -47,7 +48,26 @@ if db_url.startswith("postgres"):
     db_url_async = "postgresql+asyncpg" + db_url
     db_url = "postgresql" + db_url
 
+# Url for the bot and scheduler db
+db_url = _getenv("MYSQL_URL")
+# mysql+aiomysql://user:password@host:port/dbname[?key=value&key=value...]
+repl_till = db_url.find("://")
+db_url = db_url[repl_till:]
+db_url_async = "mysql+asyncmy" + db_url
+db_url = "mysql" + db_url
+
+
+db_session_kwargs_sync = {
+    "expire_on_commit": False,
+}
+
 # Async SQLAlchemy DB Session KWArg Parameters
-db_session_kwargs = {"expire_on_commit": False, "class_": AsyncSession}
+db_session_kwargs = db_session_kwargs_sync | {
+    "class_": AsyncSession,
+}
+
+ssl_ctx = ssl.create_default_context(cafile="/etc/ssl/certs/ca-certificates.crt")
+ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+db_connect_args = {"ssl": ssl_ctx}
 
 REGISTRATION_TIMEOUT = dt.timedelta(minutes=10)

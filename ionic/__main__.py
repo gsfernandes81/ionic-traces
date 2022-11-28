@@ -1,11 +1,8 @@
 import argparse
 import asyncio
 import datetime as dt
-import logging
 import random
-import re
-import unicodedata
-from asyncio.tasks import ALL_COMPLETED
+import regex as re
 from typing import List, Union
 
 import dateparser
@@ -23,7 +20,7 @@ from . import cfg
 from .cfg import REGISTRATION_TIMEOUT
 from .schemas import Base, User
 
-db_engine = create_async_engine(cfg.db_url_async)
+db_engine = create_async_engine(cfg.db_url_async, connect_args=cfg.db_connect_args)
 db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
 
 
@@ -180,7 +177,7 @@ async def register_user(message: h.Message):
             users = (
                 await session.execute(
                     select(User.update_dt, User.update_id).where(
-                        dt.datetime.now(tz=utc) - User.update_dt <= REGISTRATION_TIMEOUT
+                        dt.datetime.now() - User.update_dt <= REGISTRATION_TIMEOUT
                     )
                 )
             ).fetchall()
@@ -200,7 +197,7 @@ async def register_user(message: h.Message):
             else:
                 # If they have, make sure to update their datetime to allow
                 # them to register
-                instance.update_dt = dt.datetime.now(tz=utc)
+                instance.update_dt = dt.datetime.now()
             instance.update_id = link_id
             session.add(instance)
 
@@ -211,9 +208,10 @@ async def register_user(message: h.Message):
         + "This will collect and store your discord id and your timezone.\n"
         + "Both of these are only used to understand what time you mean when you use the bot. "
         + "This data is stored securely and not processed in any way and can be deleted with "
-        + "`?time-deregister` and you can reregister with `?time` in the {} channel".format(
+        + "`/unregister` and you can reregister by typing <1:00 pm> (or any other time) in a ".format(
             (await bot.fetch_channel(message.channel_id)).name
         )
+        + "server with the bot."
     )
 
 
@@ -268,7 +266,7 @@ async def time_message_handler(event: h.MessageCreateEvent):
         while True:
             await asyncio.sleep(10)
             user: User = await _get_user_by_id(user_id)
-            if dt.datetime.now(tz=utc) - user.update_dt > REGISTRATION_TIMEOUT:
+            if dt.datetime.now() - user.update_dt > REGISTRATION_TIMEOUT:
                 await response_msg.delete()
                 break
             elif user is None or user.tz == "":

@@ -27,7 +27,7 @@ success_page = j_env.get_template("success.jinja")
 failure_page = j_env.get_template("failure.jinja")
 app = quart.Quart("ionic")
 
-db_engine = create_async_engine(cfg.db_url_async)
+db_engine = create_async_engine(cfg.db_url_async, connect_args=cfg.db_connect_args)
 db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
 
 
@@ -80,7 +80,7 @@ async def receive_timezone():
                 # has requested registration
                 quart.abort(401)
             user = user[0]
-            if dt.datetime.now(tz=utc) - user.update_dt > REGISTRATION_TIMEOUT:
+            if dt.datetime.now() - user.update_dt > REGISTRATION_TIMEOUT:
                 quart.abort(401)
             user.tz = timezone
     return jsonify(success=True)
