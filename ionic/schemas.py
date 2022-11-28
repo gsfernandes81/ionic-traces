@@ -13,7 +13,7 @@ Base = declarative_base()
 
 
 class User(Base):
-    __tablename__ = "mbd_user"
+    __tablename__ = "user"
     __mapper_args__ = {"eager_defaults": True}
     id = Column("id", BigInteger, primary_key=True)
     tz = Column("tz", VARCHAR(64))
