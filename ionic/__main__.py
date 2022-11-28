@@ -64,23 +64,40 @@ bot = Bot(
 
 def listen_for_reaction(
     bot: Bot,
-    reaction: Union[str, int, h.Emoji],
-    keyword: str,
+    reaction: Union[str, h.Emoji] = None,
+    keywords: List[str] = None,
     server_list: List[int] = None,
+    respond_to_reactions=True,
+    respond_to_messages=True,
+    allowed_uids=[],
 ):
     async def reaction_handler(event: Union[h.ReactionAddEvent, h.MessageCreateEvent]):
         bot: Bot = event.app
+
+        if allowed_uids and event.author_id not in allowed_uids:
+            return
+
         channel = await bot.fetch_channel(event.channel_id)
 
         try:
-            assert server_list is None or channel.guild_id in server_list
-            if (
-                isinstance(event, h.ReactionAddEvent) and event.emoji_name == reaction
+            if not (server_list is None or channel.guild_id in server_list):
+                return
+            elif (
+                isinstance(event, h.ReactionAddEvent)
+                and event.emoji_name in [reaction, *keywords]
+                and respond_to_reactions
             ) or (
                 isinstance(event, h.MessageCreateEvent)
-                and keyword in event.content.lower()
+                and any(keyword in event.content.lower() for keyword in keywords)
+                and respond_to_messages
             ):
                 msg = await bot.fetch_message(channel, event.message_id)
+                # If no reaction is specified, match only based on keywords
+                # and add reaction if the keyword is in the used emoji
+                if reaction is None:
+                    reaction = await bot.rest.fetch_emoji(
+                        channel.guild_id, event.emoji_id
+                    )
                 await msg.add_reaction(reaction)
         except AttributeError:
             # Ignore if not a guild (channel.guild_id would raise AttributeError)
@@ -201,7 +218,11 @@ async def register_user(message: h.Message):
 
 
 @bot.command
-@lb.command("unregister", "Unregister your time data from the bot", auto_defer=True)
+@lb.command(
+    "unregister",
+    "Unregister your time data from the bot",
+    auto_defer=True,
+)
 @lb.implements(lb.SlashCommand)
 async def deregister_handler(ctx: lb.Context):
     # Find the user in the db
@@ -237,7 +258,8 @@ async def time_message_handler(event: h.MessageCreateEvent):
     if is_user_not_registered:
         response_msg: h.Message = await message.respond(
             "You haven't registered with me yet\n"
-            + "Sending you a registration link in a dm..."
+            + "Sending you a registration link in a dm...",
+            reply=True,
         )
         # TODO Buttons here
         # await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
@@ -275,8 +297,17 @@ async def pre_start(event: h.StartingEvent):
 
 @bot.listen()
 async def on_lb_start(event: lb.LightbulbStartedEvent):
-    listen_for_reaction(bot, "🍕", "pizza", cfg.pizza_servers)
-    listen_for_reaction(bot, "🌮", "taco", cfg.taco_servers)
+    listen_for_reaction(bot, "🍕", ["pizza"], cfg.pizza_servers)
+    listen_for_reaction(bot, "🌮", ["taco"], cfg.taco_servers)
+    # Telesto reactions for Hio
+    # Only respond to emoji reacts and not to text
+    listen_for_reaction(
+        bot,
+        keywords=["telesto"],
+        respond_to_messages=False,
+        # Hio's user id
+        allowed_uids=bot.owner_ids + (803658060849217556,),
+    )
 
 
 def main():
