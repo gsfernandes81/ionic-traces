@@ -75,6 +75,10 @@ class Bot(lb.BotApp):
             msg: h.Message = event.message
             msg_text: str = msg.content
 
+            # Ignore empty messages
+            if not msg_text:
+                return
+
             if allowed_uids and user_id not in allowed_uids:
                 # Ignore the event if the user's id is not in allowed_users
                 # Do not ignore if allowed_users is None since that indicates
@@ -281,6 +285,10 @@ async def time_message_handler(event: h.MessageCreateEvent):
     user_id = event.author_id
     message = event.message
     content = message.content
+
+    # Return if we receive an empty message
+    if not content:
+        return
 
     time_list = await _time_list_from_string(content)
 
