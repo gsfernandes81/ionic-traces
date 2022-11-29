@@ -124,7 +124,13 @@ class Bot(lb.BotApp):
                 # Search emoji's name with regex,
                 # if there is a match, react with the same emoji
                 msg = await bot.fetch_message(channel_id, event.message_id)
-                reaction = await bot.fetch_emoji(guild_id, emoji_id)
+                try:
+                    reaction = await bot.fetch_emoji(guild_id, emoji_id)
+                except TypeError:
+                    # bot.fetch_emoji throws a TypeError for unicode emoji
+                    # since emoji_id is None for these. emoji_name will have the
+                    # emoji in this case
+                    reaction = emoji_name
                 await msg.add_reaction(reaction)
 
         return bot.listen()(reaction_handler)
@@ -332,23 +338,23 @@ async def pre_start(event: h.StartingEvent):
 async def on_lb_start(event: lb.LightbulbStartedEvent):
     # Pizza setup
     bot.react_to_guild_messages(
-        trigger_regex=re.compile("pizza(?![_\s\-,:;'\/\\\+]*milk)", re.IGNORECASE),
+        trigger_regex=re.compile("(pizza(?![_\s\-,:;'\/\\\+]*milk)|🍕)", re.IGNORECASE),
         reaction="🍕",
         allowed_servers=cfg.pizza_servers,
     )
     bot.react_to_guild_reactions(
-        trigger_regex=re.compile("pizza(?![_\s\-,:;'\/\\\+]*milk)", re.IGNORECASE),
+        trigger_regex=re.compile("(pizza(?![_\s\-,:;'\/\\\+]*milk)|🍕)", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Taco setup
     bot.react_to_guild_messages(
-        trigger_regex=re.compile("taco", re.IGNORECASE),
+        trigger_regex=re.compile("(taco|🌮)", re.IGNORECASE),
         reaction="🌮",
         allowed_servers=cfg.pizza_servers,
     )
     bot.react_to_guild_reactions(
-        trigger_regex=re.compile("taco", re.IGNORECASE),
+        trigger_regex=re.compile("(taco|🌮)", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
