@@ -70,7 +70,7 @@ class Bot(lb.BotApp):
         allowed_uids: List[int] = [],
     ):
         async def reaction_handler(event: h.GuildMessageCreateEvent):
-            user_id: int = event.member.id
+            user_id: int = event.author.id
             guild_id: int = event.guild_id
             msg: h.Message = event.message
             msg_text: str = msg.content
@@ -102,7 +102,7 @@ class Bot(lb.BotApp):
     ):
         async def reaction_handler(event: h.GuildReactionAddEvent):
             bot: Bot = event.app
-            user_id: int = event.member.id
+            user_id: int = event.user_id
             channel_id: int = event.channel_id
             guild_id: int = event.guild_id
             emoji_name: str = event.emoji_name
