@@ -42,9 +42,19 @@ class Bot(lb.BotApp):
     async def fetch_guild(self, guild: int):
         return self.cache.get_guild(guild) or await self.rest.fetch_guild(guild)
 
-    async def fetch_message(self, channel: h.TextableChannel, message: int):
+    async def fetch_message(
+        self, channel: h.SnowflakeishOr[h.TextableChannel], message: int
+    ):
+        if isinstance(channel, h.Snowflake) or isinstance(channel, int):
+            channel = await self.fetch_channel(channel)
+
         return self.cache.get_message(message) or await self.rest.fetch_message(
             channel, message
+        )
+
+    async def fetch_emoji(self, guild_id, emoji_id):
+        return bot.cache.get_emoji(emoji_id) or await bot.rest.fetch_emoji(
+            guild_id, emoji_id
         )
 
 
