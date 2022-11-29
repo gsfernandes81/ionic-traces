@@ -62,6 +62,73 @@ class Bot(lb.BotApp):
             guild_id, emoji_id
         )
 
+    def react_to_guild_messages(
+        self,
+        trigger_regex: re.Pattern,
+        reaction: Union[str, h.Emoji],
+        allowed_servers: List[int] = [],
+        allowed_uids: List[int] = [],
+    ):
+        async def reaction_handler(event: h.GuildMessageCreateEvent):
+            user_id: int = event.member.id
+            guild_id: int = event.guild_id
+            msg: h.Message = event.message
+            msg_text: str = msg.content
+
+            if allowed_uids and user_id not in allowed_uids:
+                # Ignore the event if the user's id is not in allowed_users
+                # Do not ignore if allowed_users is None since that indicates
+                # this is enabled for all users
+                return
+
+            if allowed_servers and guild_id not in allowed_servers:
+                # Ignore the event if the guild id is not in allowed_servers
+                # Do not ignore if allowed_servers is None since that indicates
+                # this is enabled for all guilds
+                return
+
+            if trigger_regex.search(msg_text):
+                # Search the message text with regex,
+                # if there is a match, react with the specified emoji
+                await msg.add_reaction(reaction)
+
+        return bot.listen()(reaction_handler)
+
+    def react_to_guild_reactions(
+        self,
+        trigger_regex: re.Pattern,
+        allowed_servers: List[int] = [],
+        allowed_uids: List[int] = [],
+    ):
+        async def reaction_handler(event: h.GuildReactionAddEvent):
+            bot: Bot = event.app
+            user_id: int = event.member.id
+            channel_id: int = event.channel_id
+            guild_id: int = event.guild_id
+            emoji_name: str = event.emoji_name
+            emoji_id: str = event.emoji_id
+
+            if allowed_uids and user_id not in allowed_uids:
+                # Ignore the event if the user's id is not in allowed_users
+                # Do not ignore if allowed_users is None since that indicates
+                # this is enabled for all users
+                return
+
+            if allowed_servers and guild_id not in allowed_servers:
+                # Ignore the event if the guild id is not in allowed_servers
+                # Do not ignore if allowed_servers is None since that indicates
+                # this is enabled for all guilds
+                return
+
+            if trigger_regex.search(emoji_name):
+                # Search emoji's name with regex,
+                # if there is a match, react with the same emoji
+                msg = await bot.fetch_message(channel_id, event.message_id)
+                reaction = await bot.fetch_emoji(guild_id, emoji_id)
+                await msg.add_reaction(reaction)
+
+        return bot.listen()(reaction_handler)
+
 
 bot = Bot(
     cfg.discord_token,
@@ -72,75 +139,6 @@ bot = Bot(
         | h.Intents.ALL_MESSAGE_REACTIONS
     ),
 )
-
-
-def react_to_guild_messages(
-    bot: Bot,
-    trigger_regex: re.Pattern,
-    reaction: Union[str, h.Emoji],
-    allowed_servers: List[int] = [],
-    allowed_uids: List[int] = [],
-):
-    async def reaction_handler(event: h.GuildMessageCreateEvent):
-        user_id: int = event.member.id
-        guild_id: int = event.guild_id
-        msg: h.Message = event.message
-        msg_text: str = msg.content
-
-        if allowed_uids and user_id not in allowed_uids:
-            # Ignore the event if the user's id is not in allowed_users
-            # Do not ignore if allowed_users is None since that indicates
-            # this is enabled for all users
-            return
-
-        if allowed_servers and guild_id not in allowed_servers:
-            # Ignore the event if the guild id is not in allowed_servers
-            # Do not ignore if allowed_servers is None since that indicates
-            # this is enabled for all guilds
-            return
-
-        if trigger_regex.search(msg_text):
-            # Search the message text with regex,
-            # if there is a match, react with the specified emoji
-            await msg.add_reaction(reaction)
-
-    return bot.listen()(reaction_handler)
-
-
-def react_to_guild_reactions(
-    bot: Bot,
-    trigger_regex: re.Pattern,
-    allowed_servers: List[int] = [],
-    allowed_uids: List[int] = [],
-):
-    async def reaction_handler(event: h.GuildReactionAddEvent):
-        bot: Bot = event.app
-        user_id: int = event.member.id
-        channel_id: int = event.channel_id
-        guild_id: int = event.guild_id
-        emoji_name: str = event.emoji_name
-        emoji_id: str = event.emoji_id
-
-        if allowed_uids and user_id not in allowed_uids:
-            # Ignore the event if the user's id is not in allowed_users
-            # Do not ignore if allowed_users is None since that indicates
-            # this is enabled for all users
-            return
-
-        if allowed_servers and guild_id not in allowed_servers:
-            # Ignore the event if the guild id is not in allowed_servers
-            # Do not ignore if allowed_servers is None since that indicates
-            # this is enabled for all guilds
-            return
-
-        if trigger_regex.search(emoji_name):
-            # Search emoji's name with regex,
-            # if there is a match, react with the same emoji
-            msg = await bot.fetch_message(channel_id, event.message_id)
-            reaction = await bot.fetch_emoji(guild_id, emoji_id)
-            await msg.add_reaction(reaction)
-
-    return bot.listen()(reaction_handler)
 
 
 async def _time_list_from_string(text: str) -> List[dt.datetime]:
@@ -333,34 +331,29 @@ async def pre_start(event: h.StartingEvent):
 @bot.listen()
 async def on_lb_start(event: lb.LightbulbStartedEvent):
     # Pizza setup
-    react_to_guild_messages(
-        bot,
+    bot.react_to_guild_messages(
         trigger_regex=re.compile("pizza(?![_\s\-,:;'\/\\\+]*milk)", re.IGNORECASE),
         reaction="🍕",
         allowed_servers=cfg.pizza_servers,
     )
-    react_to_guild_reactions(
-        bot,
+    bot.react_to_guild_reactions(
         trigger_regex=re.compile("pizza(?![_\s\-,:;'\/\\\+]*milk)", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Taco setup
-    react_to_guild_messages(
-        bot,
+    bot.react_to_guild_messages(
         trigger_regex=re.compile("taco", re.IGNORECASE),
         reaction="🌮",
         allowed_servers=cfg.pizza_servers,
     )
-    react_to_guild_reactions(
-        bot,
+    bot.react_to_guild_reactions(
         trigger_regex=re.compile("taco", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Telesto reactions for Hio
-    react_to_guild_reactions(
-        bot,
+    bot.react_to_guild_reactions(
         trigger_regex=re.compile(
             "(telesto|reef\s+in\s+ruins|dread\s+from\s+below|long\s+live\s+the\s+queen)",
             flags=re.IGNORECASE,
@@ -368,8 +361,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
         allowed_servers=cfg.pizza_servers,
         allowed_uids=await bot.fetch_owner_ids() + [HIO_UID],
     )
-    react_to_guild_messages(
-        bot,
+    bot.react_to_guild_messages(
         trigger_regex=re.compile(
             "long\s+live\s+the\s+queen",
             flags=re.IGNORECASE,
@@ -379,8 +371,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
     )
 
     # Sweet business reactions for Bryce
-    react_to_guild_reactions(
-        bot,
+    bot.react_to_guild_reactions(
         trigger_regex=re.compile("^sweet[_ ]business$", flags=re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
         allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
