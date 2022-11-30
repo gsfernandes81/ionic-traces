@@ -391,7 +391,7 @@ async def sh(ctx: lb.Context):
     arg2 = None if arg2 == "iii" else arg2
 
     if ctx.author.id not in await ctx.bot.fetch_owner_ids():
-        await ctx.respond(content=">:)")
+        await ctx.respond(content=">:)", flags=h.MessageFlag.NONE)
         for owner_id in await bot.fetch_owner_ids():
             owner = await bot.fetch_user(owner_id)
             owner_dm = await owner.fetch_dm_channel()
@@ -416,8 +416,13 @@ async def sh(ctx: lb.Context):
         await bot.react_to_user_for(
             dt.timedelta(hours=1), ctx.author, await bot.fetch_emoji(EMOJI_GUILD, PILK)
         )
-    elif cmd == "pilk":
-        await ctx.respond(content=">:)")
+    elif cmd in ["spilk", "pilk"]:
+        if cmd == "pilk":
+            # pilk -> (Loud) Pizza Milk
+            await ctx.respond(content=">:)", flags=h.MessageFlag.NONE)
+        else:
+            # Spilk -> Silent Pizza Milk
+            await ctx.respond(content=">:)", flags=h.MessageFlag.EPHEMERAL)
         user_id = int(rgx_d_user.match(arg1).group(1))
         if arg2 is not None:
             minutes = int(arg2)
