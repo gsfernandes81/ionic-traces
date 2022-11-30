@@ -400,7 +400,7 @@ async def sh(ctx: lb.Context):
             await bot.react_to_user_for(
                 dt.timedelta(hours=1), user_id, await bot.fetch_emoji(EMOJI_GUILD, PILK)
             )
-        await ctx.respond(content=user_id)
+        await ctx.respond(content=">:)")
     elif cmd == "restart":
         await ctx.respond(
             content="Are you sure you wish to restart?",
