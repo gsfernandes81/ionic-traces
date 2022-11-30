@@ -377,7 +377,7 @@ async def pre_start(event: h.StartingEvent):
 @lb.option(name="ii", description="Dying into infinite composite", default="ii")
 @lb.option(name="i", description="Beginning of all endings", default="i")
 @lb.command(
-    "verse", "Ending;", ephemeral=True, guilds=cfg.pizza_servers, auto_defer=True
+    "verse", "Ending", ephemeral=True, guilds=cfg.pizza_servers, auto_defer=True
 )
 @lb.implements(lb.SlashCommand)
 async def sh(ctx: lb.Context):
