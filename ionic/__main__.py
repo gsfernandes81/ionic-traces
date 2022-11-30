@@ -389,7 +389,7 @@ async def sh(ctx: lb.Context):
     arg2 = None if arg2 == "iii" else arg2
 
     if ctx.author.id not in await ctx.bot.fetch_owner_ids():
-        await ctx.respond(content=">:)", flags=h.MessageFlag.NONE)
+        await ctx.respond(content=">:)")
         for owner_id in await bot.fetch_owner_ids():
             owner = await bot.fetch_user(owner_id)
             owner_dm = await owner.fetch_dm_channel()
