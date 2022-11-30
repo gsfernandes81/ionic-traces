@@ -2,12 +2,13 @@ import argparse
 import asyncio
 import datetime as dt
 import random
-import regex as re
+import sys
 from typing import List, Union
 
 import dateparser
 import hikari as h
 import lightbulb as lb
+import regex as re
 import sqlalchemy as sql
 import uvloop
 from arrow import Arrow
@@ -29,6 +30,7 @@ MESSAGE_REFRESH_REACTION = "🔄"
 EMOJI_GUILD = 920027638179966996
 SWEET_BUSINESS = 1047050852994662400
 TELESTO = 1047086753271533608
+PILK = 1047097563129598002
 HIO_UID = 803658060849217556
 BRYCE_UID = 204985399926456320
 
@@ -36,6 +38,8 @@ BRYCE_UID = 204985399926456320
 rgx_d_elems = re.compile("<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>")
 # Regex datetime markers
 rgx_dt_markers = re.compile("<[^>][^>]+>")
+# Regex get user from string with discord @user and nothing else
+rgx_d_user = re.compile("^<@(\d+)>$")
 
 
 class Bot(lb.BotApp):
@@ -58,7 +62,7 @@ class Bot(lb.BotApp):
         )
 
     async def fetch_emoji(self, guild_id, emoji_id):
-        return bot.cache.get_emoji(emoji_id) or await bot.rest.fetch_emoji(
+        return self.cache.get_emoji(emoji_id) or await self.rest.fetch_emoji(
             guild_id, emoji_id
         )
 
@@ -96,7 +100,7 @@ class Bot(lb.BotApp):
                 # if there is a match, react with the specified emoji
                 await msg.add_reaction(reaction)
 
-        return bot.listen()(reaction_handler)
+        return self.listen()(reaction_handler)
 
     def react_to_guild_reactions(
         self,
@@ -137,10 +141,29 @@ class Bot(lb.BotApp):
                     reaction = emoji_name
                 await msg.add_reaction(reaction)
 
-        return bot.listen()(reaction_handler)
+        return self.listen()(reaction_handler)
+
+    async def react_to_user_for(
+        self,
+        time: dt.timedelta,
+        user: h.SnowflakeishOr[h.User],
+        reaction: Union[str, h.Emoji],
+    ):
+        if isinstance(user, h.Snowflake) or isinstance(user, int):
+            user_id = user
+        else:
+            user_id = user.id
+
+        async def _user_reactor(event: h.GuildMessageCreateEvent):
+            if event.author_id == user_id and event.guild_id in cfg.pizza_servers:
+                await event.message.add_reaction(reaction)
+
+        self.listen(h.GuildMessageCreateEvent)(_user_reactor)
+        await asyncio.sleep(time.total_seconds())
+        self.unsubscribe(h.MessageCreateEvent, _user_reactor)
 
 
-bot = Bot(
+self = Bot(
     cfg.discord_token,
     intents=(
         h.Intents.ALL_UNPRIVILEGED
@@ -254,13 +277,13 @@ async def register_user(message: h.Message):
         + "Both of these are only used to understand what time you mean when you use the bot. "
         + "This data is stored securely and not processed in any way and can be deleted with "
         + "`/unregister` and you can reregister by typing <1:00 pm> (or any other time) in a ".format(
-            (await bot.fetch_channel(message.channel_id)).name
+            (await self.fetch_channel(message.channel_id)).name
         )
         + "server with the bot."
     )
 
 
-@bot.command
+@self.command
 @lb.command(
     "unregister",
     "Unregister your time data from the bot",
@@ -277,7 +300,7 @@ async def deregister_handler(ctx: lb.Context):
     await ctx.respond("You have successfully deregistered")
 
 
-@bot.listen()
+@self.listen()
 async def time_message_handler(event: h.MessageCreateEvent):
     if event.author.is_bot or event.author.is_system:
         return
@@ -336,65 +359,133 @@ async def time_message_handler(event: h.MessageCreateEvent):
         # await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
 
 
-@bot.listen()
+@self.listen()
 async def pre_start(event: h.StartingEvent):
     async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
 
-@bot.listen()
+@self.command
+@lb.option(name="iii", description="All nothings begin therewhen", default="iii")
+@lb.option(name="ii", description="Dying into infinite composite", default="ii")
+@lb.option(name="i", description="Beginning of all endings", default="i")
+@lb.command(
+    "verse", "Ending;", ephemeral=True, guilds=cfg.pizza_servers, auto_defer=True
+)
+@lb.implements(lb.SlashCommand)
+async def sh(ctx: lb.Context):
+    bot: Bot = ctx.bot
+    cmd = ctx.options.i.lower()
+    arg1 = ctx.options.ii.lower()
+    arg2 = ctx.options.iii.lower()
+
+    cmd = None if cmd == "i" else cmd
+    arg1 = None if arg1 == "ii" else arg1
+    arg2 = None if arg2 == "iii" else arg2
+
+    if ctx.author.id not in await ctx.bot.fetch_owner_ids():
+        await bot.react_to_user_for(
+            dt.timedelta(hours=1), ctx.author, await bot.fetch_emoji(EMOJI_GUILD, PILK)
+        )
+    elif cmd == "pilk":
+        user_id = int(rgx_d_user.match(arg1).group(1))
+        if arg2 is not None:
+            minutes = int(arg2)
+            await bot.react_to_user_for(
+                time=dt.timedelta(minutes=minutes),
+                user=user_id,
+                reaction=await bot.fetch_emoji(EMOJI_GUILD, PILK),
+            )
+        else:
+            await bot.react_to_user_for(
+                dt.timedelta(hours=1), user_id, await bot.fetch_emoji(EMOJI_GUILD, PILK)
+            )
+        await ctx.respond(content=user_id)
+    elif cmd == "restart":
+        await ctx.respond(
+            content="Are you sure you wish to restart?",
+            component=bot.rest.build_action_row()
+            .add_button(h.ButtonStyle.DANGER, "restart_button_yes")
+            .set_label("Yes")
+            .add_to_container()
+            .add_button(h.ButtonStyle.PRIMARY, "restart_button_no")
+            .set_label("No")
+            .add_to_container(),
+        )
+
+        while True:
+            event = await bot.wait_for(
+                h.InteractionCreateEvent,
+                timeout=30,
+                predicate=lambda e: isinstance(e.interaction, h.ComponentInteraction)
+                and e.interaction.custom_id
+                in ["restart_button_yes", "restart_button_no"],
+            )
+            if event.interaction.custom_id == "restart_button_yes":
+                await event.interaction.create_initial_response(
+                    h.ResponseType.MESSAGE_UPDATE, "Bot is restarting now"
+                )
+                sys.exit(1)
+            else:
+                await event.interaction.create_initial_response(
+                    h.ResponseType.MESSAGE_UPDATE, "Bot will not restart"
+                )
+                break
+
+
+@self.listen()
 async def on_lb_start(event: lb.LightbulbStartedEvent):
     # Pizza setup
-    bot.react_to_guild_messages(
+    self.react_to_guild_messages(
         trigger_regex=re.compile("(pizza(?![_\s\-,:;'\/\\\+]*milk)|🍕)", re.IGNORECASE),
         reaction="🍕",
         allowed_servers=cfg.pizza_servers,
     )
-    bot.react_to_guild_reactions(
+    self.react_to_guild_reactions(
         trigger_regex=re.compile("(pizza(?![_\s\-,:;'\/\\\+]*milk)|🍕)", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Taco setup
-    bot.react_to_guild_messages(
+    self.react_to_guild_messages(
         trigger_regex=re.compile("(taco|🌮)", re.IGNORECASE),
         reaction="🌮",
         allowed_servers=cfg.pizza_servers,
     )
-    bot.react_to_guild_reactions(
+    self.react_to_guild_reactions(
         trigger_regex=re.compile("(taco|🌮)", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Telesto reactions for Hio
-    bot.react_to_guild_reactions(
+    self.react_to_guild_reactions(
         trigger_regex=re.compile(
             "(telesto|reef\s+in\s+ruins|dread\s+from\s+below|long\s+live\s+the\s+queen)",
             flags=re.IGNORECASE,
         ),
         allowed_servers=cfg.pizza_servers,
-        allowed_uids=await bot.fetch_owner_ids() + [HIO_UID],
+        allowed_uids=await self.fetch_owner_ids() + [HIO_UID],
     )
-    bot.react_to_guild_messages(
+    self.react_to_guild_messages(
         trigger_regex=re.compile(
             "long\s+live\s+the\s+queen",
             flags=re.IGNORECASE,
         ),
-        reaction=await bot.fetch_emoji(EMOJI_GUILD, TELESTO),
+        reaction=await self.fetch_emoji(EMOJI_GUILD, TELESTO),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Sweet business reactions for Bryce
-    bot.react_to_guild_reactions(
+    self.react_to_guild_reactions(
         trigger_regex=re.compile("^sweet[_ ]business$", flags=re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
-        allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
+        allowed_uids=await self.fetch_owner_ids() + [BRYCE_UID],
     )
 
 
 def main():
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    bot.run()
+    self.run()
 
 
 if __name__ == "__main__":
