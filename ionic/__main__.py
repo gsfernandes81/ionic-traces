@@ -149,6 +149,10 @@ class Bot(lb.BotApp):
         user: h.SnowflakeishOr[h.User],
         reaction: Union[str, h.Emoji],
     ):
+        """Reacts to <user> with <reaction> for <time> in discord guilds
+
+        This is a 'blocking' function so create a task if you want to execute
+        something immediately after triggering this"""
         if isinstance(user, h.Snowflake) or isinstance(user, int):
             user_id = user
         else:
@@ -388,6 +392,7 @@ async def sh(ctx: lb.Context):
             dt.timedelta(hours=1), ctx.author, await bot.fetch_emoji(EMOJI_GUILD, PILK)
         )
     elif cmd == "pilk":
+        await ctx.respond(content=">:)")
         user_id = int(rgx_d_user.match(arg1).group(1))
         if arg2 is not None:
             minutes = int(arg2)
@@ -400,10 +405,9 @@ async def sh(ctx: lb.Context):
             await bot.react_to_user_for(
                 dt.timedelta(hours=1), user_id, await bot.fetch_emoji(EMOJI_GUILD, PILK)
             )
-        await ctx.respond(content=">:)")
     elif cmd == "restart":
         await ctx.respond(
-            content="Are you sure you wish to restart?",
+            content="Are you sure you want to restart?",
             component=bot.rest.build_action_row()
             .add_button(h.ButtonStyle.DANGER, "restart_button_yes")
             .set_label("Yes")
@@ -411,6 +415,7 @@ async def sh(ctx: lb.Context):
             .add_button(h.ButtonStyle.PRIMARY, "restart_button_no")
             .set_label("No")
             .add_to_container(),
+            flags=h.MessageFlag.EPHEMERAL,
         )
 
         while True:
@@ -431,6 +436,8 @@ async def sh(ctx: lb.Context):
                     h.ResponseType.MESSAGE_UPDATE, "Bot will not restart"
                 )
                 break
+    else:
+        await ctx.respond(content="Command not found")
 
 
 @self.listen()
