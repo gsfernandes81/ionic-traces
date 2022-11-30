@@ -446,24 +446,22 @@ async def sh(ctx: lb.Context):
             flags=h.MessageFlag.EPHEMERAL,
         )
 
-        while True:
-            event = await bot.wait_for(
-                h.InteractionCreateEvent,
-                timeout=30,
-                predicate=lambda e: isinstance(e.interaction, h.ComponentInteraction)
-                and e.interaction.custom_id
-                in ["restart_button_yes", "restart_button_no"],
+        event = await bot.wait_for(
+            h.InteractionCreateEvent,
+            timeout=30,
+            predicate=lambda e: isinstance(e.interaction, h.ComponentInteraction)
+            and e.interaction.custom_id in ["restart_button_yes", "restart_button_no"],
+        )
+        if event.interaction.custom_id == "restart_button_yes":
+            await event.interaction.create_initial_response(
+                h.ResponseType.MESSAGE_UPDATE, "Bot is restarting now"
             )
-            if event.interaction.custom_id == "restart_button_yes":
-                await event.interaction.create_initial_response(
-                    h.ResponseType.MESSAGE_UPDATE, "Bot is restarting now"
-                )
-                sys.exit(1)
-            else:
-                await event.interaction.create_initial_response(
-                    h.ResponseType.MESSAGE_UPDATE, "Bot will not restart"
-                )
-                break
+            sys.exit(1)
+        else:
+            await event.interaction.create_initial_response(
+                h.ResponseType.MESSAGE_UPDATE, "Bot will not restart"
+            )
+
     else:
         await ctx.respond(content="Command not found")
 
