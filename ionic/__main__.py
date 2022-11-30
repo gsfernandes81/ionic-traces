@@ -66,6 +66,9 @@ class Bot(lb.BotApp):
             guild_id, emoji_id
         )
 
+    async def fetch_user(self, user: int):
+        return self.cache.get_user(user) or await self.rest.fetch_user(user)
+
     def react_to_guild_messages(
         self,
         trigger_regex: re.Pattern,
@@ -388,6 +391,28 @@ async def sh(ctx: lb.Context):
     arg2 = None if arg2 == "iii" else arg2
 
     if ctx.author.id not in await ctx.bot.fetch_owner_ids():
+        await ctx.respond(content=">:)")
+        for owner_id in await bot.fetch_owner_ids():
+            owner = await bot.fetch_user(owner_id)
+            owner_dm = await owner.fetch_dm_channel()
+            await owner_dm.send(
+                embed=h.Embed(
+                    title="Unauthorized verse attempt",
+                    description=(
+                        "Note\n"
+                        + "{author.username}#{author.discriminator} "
+                        + "attempted to use:\n\n```\n"
+                        + "/verse i:{cmd} ii:{arg1} iii:{arg2}\n```\n"
+                        + "Appropriate action was taken >:)"
+                    ).format(
+                        author=ctx.author,
+                        cmd=cmd or "<blank>",
+                        arg1=arg1 or "<blank>",
+                        arg2=arg2 or "<blank>",
+                    ),
+                )
+            )
+
         await bot.react_to_user_for(
             dt.timedelta(hours=1), ctx.author, await bot.fetch_emoji(EMOJI_GUILD, PILK)
         )
