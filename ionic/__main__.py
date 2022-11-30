@@ -170,7 +170,7 @@ class Bot(lb.BotApp):
         self.unsubscribe(h.MessageCreateEvent, _user_reactor)
 
 
-self = Bot(
+bot = Bot(
     cfg.discord_token,
     intents=(
         h.Intents.ALL_UNPRIVILEGED
@@ -284,13 +284,13 @@ async def register_user(message: h.Message):
         + "Both of these are only used to understand what time you mean when you use the bot. "
         + "This data is stored securely and not processed in any way and can be deleted with "
         + "`/unregister` and you can reregister by typing <1:00 pm> (or any other time) in a ".format(
-            (await self.fetch_channel(message.channel_id)).name
+            (await bot.fetch_channel(message.channel_id)).name
         )
         + "server with the bot."
     )
 
 
-@self.command
+@bot.command
 @lb.command(
     "unregister",
     "Unregister your time data from the bot",
@@ -307,7 +307,7 @@ async def deregister_handler(ctx: lb.Context):
     await ctx.respond("You have successfully deregistered")
 
 
-@self.listen()
+@bot.listen()
 async def time_message_handler(event: h.MessageCreateEvent):
     if event.author.is_bot or event.author.is_system:
         return
@@ -366,13 +366,13 @@ async def time_message_handler(event: h.MessageCreateEvent):
         # await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
 
 
-@self.listen()
+@bot.listen()
 async def pre_start(event: h.StartingEvent):
     async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
 
-@self.command
+@bot.command
 @lb.option(name="iii", description="All nothings begin therewhen", default="iii")
 @lb.option(name="ii", description="Dying into infinite composite", default="ii")
 @lb.option(name="i", description="Beginning of all endings", default="i")
@@ -470,59 +470,59 @@ async def sh(ctx: lb.Context):
         await ctx.respond(content="Command not found")
 
 
-@self.listen()
+@bot.listen()
 async def on_lb_start(event: lb.LightbulbStartedEvent):
     # Pizza setup
-    self.react_to_guild_messages(
+    bot.react_to_guild_messages(
         trigger_regex=re.compile("(pizza(?![_\s\-,:;'\/\\\+]*milk)|🍕)", re.IGNORECASE),
         reaction="🍕",
         allowed_servers=cfg.pizza_servers,
     )
-    self.react_to_guild_reactions(
+    bot.react_to_guild_reactions(
         trigger_regex=re.compile("(pizza(?![_\s\-,:;'\/\\\+]*milk)|🍕)", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Taco setup
-    self.react_to_guild_messages(
+    bot.react_to_guild_messages(
         trigger_regex=re.compile("(taco|🌮)", re.IGNORECASE),
         reaction="🌮",
         allowed_servers=cfg.pizza_servers,
     )
-    self.react_to_guild_reactions(
+    bot.react_to_guild_reactions(
         trigger_regex=re.compile("(taco|🌮)", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Telesto reactions for Hio
-    self.react_to_guild_reactions(
+    bot.react_to_guild_reactions(
         trigger_regex=re.compile(
             "(telesto|reef\s+in\s+ruins|dread\s+from\s+below|long\s+live\s+the\s+queen)",
             flags=re.IGNORECASE,
         ),
         allowed_servers=cfg.pizza_servers,
-        allowed_uids=await self.fetch_owner_ids() + [HIO_UID],
+        allowed_uids=await bot.fetch_owner_ids() + [HIO_UID],
     )
-    self.react_to_guild_messages(
+    bot.react_to_guild_messages(
         trigger_regex=re.compile(
             "long\s+live\s+the\s+queen",
             flags=re.IGNORECASE,
         ),
-        reaction=await self.fetch_emoji(EMOJI_GUILD, TELESTO),
+        reaction=await bot.fetch_emoji(EMOJI_GUILD, TELESTO),
         allowed_servers=cfg.pizza_servers,
     )
 
     # Sweet business reactions for Bryce
-    self.react_to_guild_reactions(
+    bot.react_to_guild_reactions(
         trigger_regex=re.compile("^sweet[_ ]business$", flags=re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
-        allowed_uids=await self.fetch_owner_ids() + [BRYCE_UID],
+        allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
     )
 
 
 def main():
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    self.run()
+    bot.run()
 
 
 if __name__ == "__main__":
