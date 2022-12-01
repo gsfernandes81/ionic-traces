@@ -617,7 +617,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
             trigger_regex=re.compile(
                 "^(…|\.\.\.)I love my job\.$", flags=re.RegexFlag.IGNORECASE
             ),
-            reaction=bot.fetch_emoji(EMOJI_GUILD, emoji_id),
+            reaction=await bot.fetch_emoji(EMOJI_GUILD, emoji_id),
             allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
         )
 
