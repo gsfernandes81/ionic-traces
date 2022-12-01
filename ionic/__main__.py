@@ -3,7 +3,7 @@ import asyncio
 import datetime as dt
 import random
 import sys
-from typing import List, Union
+from typing import List, Union, Dict
 
 import dateparser
 import hikari as h
@@ -43,6 +43,12 @@ rgx_d_user = re.compile("^<@(\d+)>$")
 
 
 class Bot(lb.BotApp):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Dict of reactions -> Dict of user_ids to react to -> time to react till
+        self.reactors_register: Dict[Union[str, h.Emoji], Dict[int, dt.datetime]] = {}
+        self.listen()(self.user_reactor)
+
     async def fetch_channel(self, channel: int):
         return self.cache.get_guild_channel(channel) or await self.rest.fetch_channel(
             channel
@@ -154,20 +160,39 @@ class Bot(lb.BotApp):
     ):
         """Reacts to <user> with <reaction> for <time> in discord guilds
 
-        This is a 'blocking' function so create a task if you want to execute
-        something immediately after triggering this"""
+        This is a non blocking function"""
         if isinstance(user, h.Snowflake) or isinstance(user, int):
             user_id = user
         else:
             user_id = user.id
 
-        async def _user_reactor(event: h.GuildMessageCreateEvent):
-            if event.author_id == user_id and event.guild_id in cfg.pizza_servers:
-                await event.message.add_reaction(reaction)
+        react_till = dt.datetime.now() + time
 
-        self.listen(h.GuildMessageCreateEvent)(_user_reactor)
-        await asyncio.sleep(time.total_seconds())
-        self.unsubscribe(h.MessageCreateEvent, _user_reactor)
+        if not reaction in self.reactors_register:
+            self.reactors_register[reaction] = {}
+
+        try:
+            # Update the reactors_register with the user id and/or react till time
+            self.reactors_register[reaction][user_id] = max(
+                self.reactors_register[reaction][user_id], react_till
+            )
+        except KeyError:
+            # If user_id is not in self.reactors_register[reaction]
+            # put it there
+            self.reactors_register[reaction][user_id] = react_till
+
+    @staticmethod
+    async def user_reactor(event: h.GuildMessageCreateEvent):
+        for reaction, user_dict in event.app.reactors_register.items():
+            try:
+                if (
+                    event.guild_id in cfg.pizza_servers
+                    and dt.datetime.now() < user_dict[event.author_id]
+                ):
+                    await event.message.add_reaction(reaction)
+            except KeyError:
+                # Ignore the event if user_dict throws a keyerror with author_id
+                pass
 
 
 bot = Bot(
