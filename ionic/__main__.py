@@ -36,6 +36,24 @@ TELESTO = 1047086753271533608
 PILK = 1047097563129598002
 HIO_UID = 803658060849217556
 BRYCE_UID = 204985399926456320
+ASTROCYTE_LORE = [
+    line.lower()
+    for line in [
+        "Ghost, record this.",
+        "Trial 1: I am now putting the Astrocyte Verse on my",
+        "Ending",
+        "Beginning of all endings",
+        "Dying into infinite composite",
+        "All nothings begin therewhen",
+        "Fear is very small and it is everywhy and it is not fear it is a brutal spark a nerve ending straining under weight multimyr iteration could not foresee even though it is just that because there is no other—",
+        "Acausals whickering away become jagged umami zeroes",
+        "Awe yourself toward reddening shift",
+        "[Ghost note: key of Eb minor]",
+        "[silence lasting 4.22 minutes]",
+        "Good work, Ghost. Now, let's go again.",
+        "Trial 93. I am now putting the Astrocyte Verse on my head—",
+    ]
+]
 
 # Regex discord elements
 rgx_d_elems = re.compile("<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>")
@@ -183,6 +201,36 @@ class Bot(lb.BotApp):
             # If user_id is not in self.reactors_register[reaction]
             # put it there
             self.reactors_register[reaction][user_id] = react_till
+
+    async def undo_react_to_user_for(
+        self,
+        user: h.SnowflakeishOr[h.User],
+        reaction: Union[str, h.KnownCustomEmoji],
+    ):
+        if isinstance(user, h.Snowflake) or isinstance(user, int):
+            user_id = user
+        else:
+            user_id = user.id
+
+        if not reaction in self.reactors_register:
+            if not (
+                isinstance(reaction, h.KnownCustomEmoji)
+                and (
+                    reaction.guild_id,
+                    reaction.id,
+                )
+                in [
+                    (
+                        r.guild_id,
+                        r.id,
+                    )
+                    for r in self.reactors_register
+                ]
+            ):
+                return
+
+        # Update the reactors_register with the user id and/or react till time
+        self.reactors_register[reaction].pop(user_id, "")
 
     @staticmethod
     async def user_reactor(event: h.GuildMessageCreateEvent):
@@ -489,7 +537,24 @@ async def sh(ctx: lb.Context):
             await event.interaction.create_initial_response(
                 h.ResponseType.MESSAGE_UPDATE, "Bot will not restart"
             )
-
+    elif (
+        cmd in ASTROCYTE_LORE
+        and arg1 in ASTROCYTE_LORE
+        and arg2 in ASTROCYTE_LORE
+        and cmd not in [arg1, arg2]
+        and arg1 != arg2
+    ):
+        await ctx.respond(
+            embed=h.Embed(
+                title="<:verse:1047672073109110925> Astrocyte Verse",
+                description="The ideocosm contained within this helm transforms "
+                + "the wearer's head from flesh and/or exoneurons to the pure, "
+                + "raw stuff of thought.",
+            ),
+        )
+        await bot.undo_react_to_user_for(
+            ctx.author.id, await bot.fetch_emoji(EMOJI_GUILD, PILK)
+        )
     else:
         await ctx.respond(content="Command not found")
 
