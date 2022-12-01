@@ -29,6 +29,9 @@ MESSAGE_DELETE_REACTION = "❌"
 MESSAGE_REFRESH_REACTION = "🔄"
 EMOJI_GUILD = 920027638179966996
 SWEET_BUSINESS = 1047050852994662400
+CORPORATE_SPONSORSHIP = 1047672106688712794
+DOWN_TO_BUSINESS = 1047673578012819536
+GO_ABOUT_YOUR_BUSINESS = 1047673598686527508
 TELESTO = 1047086753271533608
 PILK = 1047097563129598002
 HIO_UID = 803658060849217556
@@ -539,6 +542,19 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
         allowed_servers=cfg.pizza_servers,
         allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
     )
+    for emoji_id in [
+        SWEET_BUSINESS,
+        CORPORATE_SPONSORSHIP,
+        DOWN_TO_BUSINESS,
+        GO_ABOUT_YOUR_BUSINESS,
+    ]:
+        bot.react_to_guild_messages(
+            trigger_regex=re.compile(
+                "^(…|\.\.\.)I love my job\.$", flags=re.RegexFlag.IGNORECASE
+            ),
+            reaction=bot.fetch_emoji(EMOJI_GUILD, emoji_id),
+            allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
+        )
 
 
 def main():
