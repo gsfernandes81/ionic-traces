@@ -173,7 +173,7 @@ class Bot(lb.BotApp):
 
         return self.listen()(reaction_handler)
 
-    async def react_to_user_for(
+    async def react_storm_user_for(
         self,
         time: dt.timedelta,
         user: h.SnowflakeishOr[h.User],
@@ -202,7 +202,7 @@ class Bot(lb.BotApp):
             # put it there
             self.reactors_register[reaction][user_id] = react_till
 
-    async def undo_react_to_user_for(
+    async def undo_react_storm_user(
         self,
         user: h.SnowflakeishOr[h.User],
         reaction: Union[str, h.KnownCustomEmoji],
@@ -231,6 +231,45 @@ class Bot(lb.BotApp):
 
         # Update the reactors_register with the user id and/or react till time
         self.reactors_register[reaction].pop(user_id, "")
+
+    def react_storm_user_on_message(
+        self,
+        trigger_regex: re.Pattern,
+        reactions: List[Union[str, h.Emoji]],
+        allowed_servers: List[int] = [],
+        allowed_uids: List[int] = [],
+    ):
+        async def reaction_handler(event: h.GuildMessageCreateEvent):
+            user_id: int = event.author.id
+            guild_id: int = event.guild_id
+            msg: h.Message = event.message
+            msg_text: str = msg.content
+
+            # Ignore empty messages
+            if not msg_text:
+                return
+
+            if allowed_uids and user_id not in allowed_uids:
+                # Ignore the event if the user's id is not in allowed_users
+                # Do not ignore if allowed_users is None since that indicates
+                # this is enabled for all users
+                return
+
+            if allowed_servers and guild_id not in allowed_servers:
+                # Ignore the event if the guild id is not in allowed_servers
+                # Do not ignore if allowed_servers is None since that indicates
+                # this is enabled for all guilds
+                return
+
+            if trigger_regex.search(msg_text):
+                # Search the message text with regex,
+                # if there is a match, react with the specified emoji
+                for reaction in reactions:
+                    await self.react_storm_user_for(
+                        dt.timedelta(minutes=2), user_id, reaction
+                    )
+
+        self.listen()(reaction_handler)
 
     @staticmethod
     async def user_reactor(event: h.GuildMessageCreateEvent):
@@ -487,7 +526,7 @@ async def sh(ctx: lb.Context):
                 )
             )
 
-        await bot.react_to_user_for(
+        await bot.react_storm_user_for(
             dt.timedelta(hours=1), ctx.author, await bot.fetch_emoji(EMOJI_GUILD, PILK)
         )
     elif cmd in ["spilk", "pilk"]:
@@ -500,13 +539,13 @@ async def sh(ctx: lb.Context):
         user_id = int(rgx_d_user.match(arg1).group(1))
         if arg2 is not None:
             minutes = int(arg2)
-            await bot.react_to_user_for(
+            await bot.react_storm_user_for(
                 time=dt.timedelta(minutes=minutes),
                 user=user_id,
                 reaction=await bot.fetch_emoji(EMOJI_GUILD, PILK),
             )
         else:
-            await bot.react_to_user_for(
+            await bot.react_storm_user_for(
                 dt.timedelta(hours=1), user_id, await bot.fetch_emoji(EMOJI_GUILD, PILK)
             )
     elif cmd == "restart":
@@ -552,7 +591,7 @@ async def sh(ctx: lb.Context):
                 + "raw stuff of thought.",
             ),
         )
-        await bot.undo_react_to_user_for(
+        await bot.undo_react_storm_user(
             ctx.author.id, await bot.fetch_emoji(EMOJI_GUILD, PILK)
         )
     else:
@@ -620,6 +659,20 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
             reaction=await bot.fetch_emoji(EMOJI_GUILD, emoji_id),
             allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
         )
+    bot.react_storm_user_on_message(
+        trigger_regex=re.compile("^(…|\.\.\.)I love my job\.$", flags=re.IGNORECASE),
+        allowed_servers=cfg.pizza_servers,
+        allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
+        reactions=[
+            await bot.fetch_emoji(EMOJI_GUILD, emoji_id)
+            for emoji_id in [
+                SWEET_BUSINESS,
+                CORPORATE_SPONSORSHIP,
+                DOWN_TO_BUSINESS,
+                GO_ABOUT_YOUR_BUSINESS,
+            ]
+        ],
+    )
 
 
 def main():
