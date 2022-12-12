@@ -55,10 +55,11 @@ ASTROCYTE_LORE = [
     ]
 ]
 
-# Regex discord elements
-rgx_d_elems = re.compile("<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>")
-# Regex datetime markers
-rgx_dt_markers = re.compile("<[^>][^>]+>")
+
+# Regex datetime markers excluding discord elements
+rgx_dt_markers = re.compile(
+    "(?!<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>)(<[^>][^>]+>)"
+)
 # Regex get user from string with discord @user and nothing else
 rgx_d_user = re.compile("^<@(\d+)>$")
 
@@ -297,12 +298,11 @@ bot = Bot(
 
 
 async def _time_list_from_string(text: str) -> List[dt.datetime]:
-    # Remove emoji, animated emoji, mentions, channels etc
-    # from discord text
-    text = rgx_d_elems.sub("", text)
-
     # Find time tokens
     time_list = rgx_dt_markers.findall(text)
+    # Bring out the second capturing groups in the regex matches list
+    # Note, the first is the negative lookahead for discord elements
+    time_list = [time[1] for time in time_list]
     # Remove the angle brackets
     time_list = [time[1:-1] for time in time_list]
     # Ignore links
@@ -352,6 +352,16 @@ async def _reply_from_user_and_times(user: User, time_list: List) -> str:
     # Create reply text
     reply = ", ".join(time_list)
     reply = "That's " + reply + " auto-converted to local time."
+    return reply
+
+
+async def _reply_from_user_times_and_text(
+    user: User, time_list: List, text: str
+) -> str:
+    time_list = await _convert_time_list_fm_user(user, time_list)
+    reply = text
+    for time in time_list:
+        reply = rgx_dt_markers.sub(time, reply)
     return reply
 
 
@@ -465,7 +475,7 @@ async def time_message_handler(event: h.MessageCreateEvent):
                 break
             elif user is None or user.tz == "":
                 continue
-            reply = await _reply_from_user_and_times(user, time_list)
+            reply = await _reply_from_user_times_and_text(user, time_list, content)
             try:
                 await response_msg.edit(content=reply)
             except h.NotFoundError:
@@ -474,7 +484,7 @@ async def time_message_handler(event: h.MessageCreateEvent):
             break
     else:
         # Use the time list and the user object to create a reply
-        reply = await _reply_from_user_and_times(user, time_list)
+        reply = await _reply_from_user_times_and_text(user, time_list, content)
         response_msg = await message.respond(reply)
         # Replace the below with buttons
         # await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
