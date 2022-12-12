@@ -355,14 +355,32 @@ async def _reply_from_user_and_times(user: User, time_list: List) -> str:
     return reply
 
 
-async def _reply_from_user_times_and_text(
+async def _embed_from_user_times_and_text(
     user: User, time_list: List, text: str
-) -> str:
+) -> h.Embed:
     time_list = await _convert_time_list_fm_user(user, time_list)
     reply = text
     for time in time_list:
         reply = rgx_dt_markers.sub(time, reply)
-    return reply
+
+    return h.Embed(description=reply)
+
+
+async def _add_user_persona_to_embed(event: h.MessageCreateEvent, embed: h.Embed):
+    if isinstance(event, h.GuildMessageCreateEvent):
+        user = event.member
+    else:
+        user = event.author
+
+    embed.set_author(
+        name="{}#{}".format(user.username, user.discriminator),
+        icon=user.avatar_url,
+    )
+
+    if user.accent_color:
+        embed.color = user.accent_color
+
+    return embed
 
 
 async def register_user(message: h.Message):
@@ -475,17 +493,19 @@ async def time_message_handler(event: h.MessageCreateEvent):
                 break
             elif user is None or user.tz == "":
                 continue
-            reply = await _reply_from_user_times_and_text(user, time_list, content)
+            embed = await _embed_from_user_times_and_text(user, time_list, content)
+            embed = await _add_user_persona_to_embed(event=event, embed=embed)
             try:
-                await response_msg.edit(content=reply)
+                await response_msg.edit(content="", embed=embed)
             except h.NotFoundError:
                 # Ignore this error: (The message must have been deleted)
                 pass
             break
     else:
         # Use the time list and the user object to create a reply
-        reply = await _reply_from_user_times_and_text(user, time_list, content)
-        response_msg = await message.respond(reply)
+        embed = await _embed_from_user_times_and_text(user, time_list, content)
+        embed = await _add_user_persona_to_embed(event=event, embed=embed)
+        response_msg = await message.respond(content="", embed=embed, reply=True)
         # Replace the below with buttons
         # await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
         # await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
