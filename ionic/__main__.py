@@ -703,6 +703,10 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
             ]
         ],
     )
+    bot.react_to_guild_reactions(
+        trigger_regex=re.compile("fu+[c]{0,1}kbo[yi]+$", flags=re.IGNORECASE),
+        allowed_servers=cfg.pizza_servers,
+    )
 
 
 def main():
