@@ -170,13 +170,6 @@ class Bot(lb.BotApp):
                     # since emoji_id is None for these. emoji_name will have the
                     # emoji in this case
                     reaction = emoji_name
-                except h.NotFoundError:
-                    for reaction in [r.emoji for r in msg.reactions]:
-                        if (
-                            isinstance(reaction, h.CustomEmoji)
-                            and event.emoji_id == reaction.id
-                        ):
-                            break
                 await msg.add_reaction(reaction)
 
         return self.listen()(reaction_handler)
