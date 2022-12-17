@@ -58,7 +58,7 @@ ASTROCYTE_LORE = [
 
 # Regex datetime markers excluding discord elements
 rgx_dt_markers = re.compile(
-    "(?!<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>)(<[^>][^>]+>)"
+    "(?!<(@!|#)[0-9]{18}>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]{18}>|<t:[0-9]+:[a-zA-Z]>)(<[^>][^>]+>)"
 )
 # Regex get user from string with discord @user and nothing else
 rgx_d_user = re.compile("^<@(\d+)>$")
@@ -361,7 +361,7 @@ async def _embed_from_user_times_and_text(
     time_list = await _convert_time_list_fm_user(user, time_list)
     reply = text
     for time in time_list:
-        reply = rgx_dt_markers.sub(time, reply)
+        reply = rgx_dt_markers.sub(time, reply, count=1)
 
     return h.Embed(description=reply)
 
