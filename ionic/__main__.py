@@ -64,37 +64,63 @@ rgx_dt_markers = re.compile(
 rgx_d_user = re.compile("^<@(\d+)>$")
 
 
+# Bot subclass with convenience functions built in
 class Bot(lb.BotApp):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Dict of reactions -> Dict of user_ids to react to -> time to react till
+        # This is a dict is structured like so
+        # reactirs_register: {
+        #
+        #   reaction (of type h.Emoji or str): {
+        #       user id (of type int): time to react until (in dt.datetime)
+        #   }
+        # }
+        #
+        # Users & reactions are added to this dict by cls.react_storm_user_for(...)
+        # and removed by cls.undo_react_storm_user(...)
         self.reactors_register: Dict[Union[str, h.Emoji], Dict[int, dt.datetime]] = {}
-        self.listen()(self.user_reactor)
+        # The above dict is used by the below method which is a staticmethod
+        # that listens to the GuildMessageCreate event
+        self.listen()(self._user_reactor)
 
-    async def fetch_channel(self, channel: int):
-        return self.cache.get_guild_channel(channel) or await self.rest.fetch_channel(
-            channel
-        )
+    async def fetch_channel(self, channel_id: int):
+        """This method fetches a channel from the cache or from discord if not cached"""
+        return self.cache.get_guild_channel(
+            channel_id
+        ) or await self.rest.fetch_channel(channel_id)
 
-    async def fetch_guild(self, guild: int):
-        return self.cache.get_guild(guild) or await self.rest.fetch_guild(guild)
+    async def fetch_guild(self, guild_id: int):
+        """This method fetches a guild from the cache or from discord if not cached"""
+        return self.cache.get_guild(guild_id) or await self.rest.fetch_guild(guild_id)
 
     async def fetch_message(
-        self, channel: h.SnowflakeishOr[h.TextableChannel], message: int
+        self, channel: h.SnowflakeishOr[h.TextableChannel], message_id: int
     ):
+        """This method fetches a message from the cache or from discord if not cached
+
+        channel can be the channels id or the channel object itself"""
         if isinstance(channel, h.Snowflake) or isinstance(channel, int):
+            # If a channel id is specified then get the channel for that id
+            # I am not sure if the int check is necessary since Snowflakes
+            # are subcalsses of int but want to test this later and remove
+            # it only after double checking. Most likely can remove, and I'm
+            # just being paranoid
             channel = await self.fetch_channel(channel)
 
-        return self.cache.get_message(message) or await self.rest.fetch_message(
-            channel, message
+        return self.cache.get_message(message_id) or await self.rest.fetch_message(
+            channel, message_id
         )
 
     async def fetch_emoji(self, guild_id, emoji_id):
+        """This method fetches an emoji from the cache or from discord if not cached"""
+        # TODO allow passing a guild (not id) to this method as well for convenience
         return self.cache.get_emoji(emoji_id) or await self.rest.fetch_emoji(
             guild_id, emoji_id
         )
 
     async def fetch_user(self, user: int):
+        """This method fetches a user from the cache or from discord if not cached"""
         return self.cache.get_user(user) or await self.rest.fetch_user(user)
 
     def react_to_guild_messages(
@@ -104,6 +130,13 @@ class Bot(lb.BotApp):
         allowed_servers: List[int] = [],
         allowed_uids: List[int] = [],
     ):
+        """React to guild messages
+
+        with 'reaction' (either a unicode emoji or a h.Emoji object)
+        in 'allowed_servers' (list of allowed server ids)
+        if message is by user in 'allowed_uids' (allowed user ids, list)
+        and if message the pattern in 'trigger_regex' can be found in message.content"""
+
         async def reaction_handler(event: h.GuildMessageCreateEvent):
             user_id: int = event.author.id
             guild_id: int = event.guild_id
@@ -139,6 +172,13 @@ class Bot(lb.BotApp):
         allowed_servers: List[int] = [],
         allowed_uids: List[int] = [],
     ):
+        """React to guild reactions
+
+        with the reaction itself
+        in 'allowed_servers' (list of allowed server ids)
+        if reaction is by user in 'allowed_uids' (allowed user ids, list)
+        and if message the pattern in 'trigger_regex' can be found in message.content"""
+
         async def reaction_handler(event: h.GuildReactionAddEvent):
             bot: Bot = event.app
             user_id: int = event.user_id
@@ -208,6 +248,7 @@ class Bot(lb.BotApp):
         user: h.SnowflakeishOr[h.User],
         reaction: Union[str, h.KnownCustomEmoji],
     ):
+        "Undoes the effect of cls.react_storm_user_for(...)"
         if isinstance(user, h.Snowflake) or isinstance(user, int):
             user_id = user
         else:
@@ -240,6 +281,13 @@ class Bot(lb.BotApp):
         allowed_servers: List[int] = [],
         allowed_uids: List[int] = [],
     ):
+        """Run react_storm_user_for if 'trigger_regex' is matched in message content
+
+        reacting with 'reactions'
+        if regex matched a message in 'allowed_servers' (List of server ids)
+        if message sent by user in 'allowed_uids' (List of user ids)
+        """
+
         async def reaction_handler(event: h.GuildMessageCreateEvent):
             user_id: int = event.author.id
             guild_id: int = event.guild_id
@@ -273,7 +321,7 @@ class Bot(lb.BotApp):
         self.listen()(reaction_handler)
 
     @staticmethod
-    async def user_reactor(event: h.GuildMessageCreateEvent):
+    async def _user_reactor(event: h.GuildMessageCreateEvent):
         for reaction, user_dict in event.app.reactors_register.items():
             try:
                 if (
@@ -283,6 +331,8 @@ class Bot(lb.BotApp):
                     await event.message.add_reaction(reaction)
             except KeyError:
                 # Ignore the event if user_dict throws a keyerror with author_id
+                # since this means the author is not tagged for any reactions
+                # on their messages
                 pass
 
 
@@ -298,6 +348,15 @@ bot = Bot(
 
 
 async def _time_list_from_string(text: str) -> List[dt.datetime]:
+    """Converts a string to a parsed list of dt.datetimes
+
+    - Takes the text,
+    - pulls out everything surrounded by <> that isn't a discord element
+    - puts each of these into a list (with the angle brackets themselves excluded)
+    - removes any links if they were picked up
+    - parse these into datetime objects
+    return the list of datetime objects
+    """
     # Find time tokens
     time_list = rgx_dt_markers.findall(text)
     # Bring out the second capturing groups in the regex matches list
@@ -324,7 +383,7 @@ async def _time_list_from_string(text: str) -> List[dt.datetime]:
 
 
 async def _get_user_by_id(id: int) -> Union[User, None]:
-    """Returns the user or None if they aren't found in the db"""
+    """Returns the user or None if they aren't found in the timezone db"""
     async with db_session() as session:
         async with session.begin():
             user = (await session.execute(select(User).where(User.id == id))).fetchone()
@@ -332,6 +391,13 @@ async def _get_user_by_id(id: int) -> Union[User, None]:
 
 
 async def _convert_time_list_fm_user(user: User, time_list: List) -> List[str]:
+    """Takes a user and times in their zone and converts it to utc unix time
+
+    When given a user (from the timezone db) and a time list (of dt.datetime objs)
+    this function will convert the time list into utc time,
+    then convert these into unix time (seconds since epoch start)
+    then convert these into a list of discord times that auto convert for everyone
+    assuming the user is speaking in their own time zone"""
     # Get the user's TimeZone
     tz = str(user.tz)
 
@@ -358,6 +424,7 @@ async def _reply_from_user_and_times(user: User, time_list: List) -> str:
 async def _embed_from_user_times_and_text(
     user: User, time_list: List, text: str
 ) -> h.Embed:
+    """Substitue times into <text> after converting them for <user>"""
     time_list = await _convert_time_list_fm_user(user, time_list)
     reply = text
     for time in time_list:
@@ -367,6 +434,7 @@ async def _embed_from_user_times_and_text(
 
 
 async def _add_user_persona_to_embed(event: h.MessageCreateEvent, embed: h.Embed):
+    """Takes an embed and adds the user's profile from an event into the embed"""
     if isinstance(event, h.GuildMessageCreateEvent):
         user = event.member
     else:
@@ -384,6 +452,7 @@ async def _add_user_persona_to_embed(event: h.MessageCreateEvent, embed: h.Embed
 
 
 async def register_user(message: h.Message):
+    """Adds a user to the db and sends them a link to add their time zone there"""
     user_id = message.author.id
 
     # Add the link_id to the db
@@ -441,6 +510,7 @@ async def register_user(message: h.Message):
 )
 @lb.implements(lb.SlashCommand)
 async def deregister_handler(ctx: lb.Context):
+    """Remove the user entirely from the timezone db"""
     # Find the user in the db
     async with db_session() as session:
         async with session.begin():
@@ -452,6 +522,13 @@ async def deregister_handler(ctx: lb.Context):
 
 @bot.listen()
 async def time_message_handler(event: h.MessageCreateEvent):
+    """Coroutine to handle time conversions
+
+    If a message has time markers detected (rgx_dt_markers),
+    then these are extracted, converted and sent back to the user
+    if the user is registered. If the user isn't registered, then
+    a registration dm is sent, and the message is edited with the
+    times when the user registers."""
     if event.author.is_bot or event.author.is_system:
         return
     # Pull properties we want from the message
@@ -524,6 +601,7 @@ async def pre_start(event: h.StartingEvent):
 @lb.command("verse", "Ending", ephemeral=True, guilds=cfg.pizza_servers)
 @lb.implements(lb.SlashCommand)
 async def sh(ctx: lb.Context):
+    """Just me having some fun :)"""
     bot: Bot = ctx.bot
     cmd = ctx.options.i.lower()
     arg1 = ctx.options.ii.lower()
@@ -703,6 +781,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
             ]
         ],
     )
+    # The forbidden emoji
     bot.react_to_guild_reactions(
         trigger_regex=re.compile("fu+[c]{0,1}kbo[yi]+$", flags=re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
@@ -710,6 +789,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
 
 
 def main():
+    """Install uvloop and start the bot"""
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     bot.run()
 
