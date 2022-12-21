@@ -8,7 +8,7 @@
 1. Install poetry
 2. Install the project dependencies with `poetry install`
 3. Set up a MYSQL instance or get a connection url for an existing one
-4. Set up the environment variables in a `.env` in the project root. All of these are only accessed in `ionic/cfg.py` for reference. The currently required environment variables are:
+4. Set up the environment variables in a `.env` in the project root. All of these are only accessed in `ionic/cfg.py` for reference and an .env.example exists for reference for a development environment. The currently required environment variables are:
         
         APP_URL
         MYSQL_URL
