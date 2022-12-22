@@ -1,5 +1,6 @@
-# Define our discord bot class
+# Define our custom discord bot classes
 # This is the base lightbulb.BotApp but with added utility functions
+
 import lightbulb as lb
 import datetime as dt
 import hikari as h
@@ -9,24 +10,8 @@ from typing import Dict, Union, List
 from . import cfg
 
 
-class Bot(lb.BotApp):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Dict of reactions -> Dict of user_ids to react to -> time to react till
-        # This is a dict is structured like so
-        # reactirs_register: {
-        #
-        #   reaction (of type h.Emoji or str): {
-        #       user id (of type int): time to react until (in dt.datetime)
-        #   }
-        # }
-        #
-        # Users & reactions are added to this dict by cls.react_storm_user_for(...)
-        # and removed by cls.undo_react_storm_user(...)
-        self.reactors_register: Dict[Union[str, h.Emoji], Dict[int, dt.datetime]] = {}
-        # The above dict is used by the below method which is a staticmethod
-        # that listens to the GuildMessageCreate event
-        self.listen()(self._user_reactor)
+class CachedFetchBot(lb.BotApp):
+    """lb.BotApp subclass with async methods that fetch objects from cache if possible"""
 
     async def fetch_channel(self, channel_id: int):
         """This method fetches a channel from the cache or from discord if not cached"""
@@ -66,6 +51,28 @@ class Bot(lb.BotApp):
     async def fetch_user(self, user: int):
         """This method fetches a user from the cache or from discord if not cached"""
         return self.cache.get_user(user) or await self.rest.fetch_user(user)
+
+
+class SpecialFeaturesBot(CachedFetchBot):
+    """Bot implementation with special reaction related features"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Dict of reactions -> Dict of user_ids to react to -> time to react till
+        # This is a dict is structured like so
+        # reactirs_register: {
+        #
+        #   reaction (of type h.Emoji or str): {
+        #       user id (of type int): time to react until (in dt.datetime)
+        #   }
+        # }
+        #
+        # Users & reactions are added to this dict by cls.react_storm_user_for(...)
+        # and removed by cls.undo_react_storm_user(...)
+        self.reactors_register: Dict[Union[str, h.Emoji], Dict[int, dt.datetime]] = {}
+        # The above dict is used by the below method which is a staticmethod
+        # that listens to the GuildMessageCreate event
+        self.listen()(self._user_reactor)
 
     def react_to_guild_messages(
         self,
@@ -124,7 +131,7 @@ class Bot(lb.BotApp):
         and if message the pattern in 'trigger_regex' can be found in message.content"""
 
         async def reaction_handler(event: h.GuildReactionAddEvent):
-            bot: Bot = event.app
+            bot: SpecialFeaturesBot = event.app
             user_id: int = event.user_id
             channel_id: int = event.channel_id
             guild_id: int = event.guild_id

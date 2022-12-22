@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
 
 from . import cfg
-from .bot import Bot
+from .bot import SpecialFeaturesBot
 from .cfg import REGISTRATION_TIMEOUT
 from .schemas import Base, User
 
@@ -35,7 +35,7 @@ rgx_d_user = re.compile("^<@(\d+)>$")
 
 
 # Bot subclass with convenience functions built in
-bot = Bot(
+bot = SpecialFeaturesBot(
     cfg.discord_token,
     intents=(
         h.Intents.ALL_UNPRIVILEGED
@@ -301,7 +301,7 @@ async def pre_start(event: h.StartingEvent):
 @lb.implements(lb.SlashCommand)
 async def sh(ctx: lb.Context):
     """Just me having some fun :)"""
-    bot: Bot = ctx.bot
+    bot: SpecialFeaturesBot = ctx.bot
     cmd = ctx.options.i.lower()
     arg1 = ctx.options.ii.lower()
     arg2 = ctx.options.iii.lower()
