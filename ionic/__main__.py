@@ -26,37 +26,6 @@ db_engine = create_async_engine(cfg.db_url_async, connect_args=cfg.db_connect_ar
 db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
 
 
-MESSAGE_DELETE_REACTION = "❌"
-MESSAGE_REFRESH_REACTION = "🔄"
-EMOJI_GUILD = 920027638179966996
-SWEET_BUSINESS = 1047050852994662400
-CORPORATE_SPONSORSHIP = 1047672106688712794
-DOWN_TO_BUSINESS = 1047673578012819536
-GO_ABOUT_YOUR_BUSINESS = 1047673598686527508
-TELESTO = 1047086753271533608
-PILK = 1047097563129598002
-HIO_UID = 803658060849217556
-BRYCE_UID = 204985399926456320
-ASTROCYTE_LORE = [
-    line.lower()
-    for line in [
-        "Ghost, record this.",
-        "Trial 1: I am now putting the Astrocyte Verse on my",
-        "Ending",
-        "Beginning of all endings",
-        "Dying into infinite composite",
-        "All nothings begin therewhen",
-        "Fear is very small and it is everywhy and it is not fear it is a brutal spark a nerve ending straining under weight multimyr iteration could not foresee even though it is just that because there is no other—",
-        "Acausals whickering away become jagged umami zeroes",
-        "Awe yourself toward reddening shift",
-        "[Ghost note: key of Eb minor]",
-        "[silence lasting 4.22 minutes]",
-        "Good work, Ghost. Now, let's go again.",
-        "Trial 93. I am now putting the Astrocyte Verse on my head—",
-    ]
-]
-
-
 # Regex datetime markers excluding discord elements
 rgx_dt_markers = re.compile(
     "(?!<(@|!|#|@!|@&)[0-9]+>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]+>|<t:[0-9]+:[a-zA-Z]{0,1}>)(<[^>]+>)"
@@ -365,7 +334,9 @@ async def sh(ctx: lb.Context):
             )
 
         await bot.react_storm_user_for(
-            dt.timedelta(hours=1), ctx.author, await bot.fetch_emoji(EMOJI_GUILD, PILK)
+            dt.timedelta(hours=1),
+            ctx.author,
+            await bot.fetch_emoji(cfg.EMOJI_GUILD, cfg.PILK),
         )
     elif cmd in ["spilk", "pilk"]:
         if cmd == "pilk":
@@ -380,11 +351,13 @@ async def sh(ctx: lb.Context):
             await bot.react_storm_user_for(
                 time=dt.timedelta(minutes=minutes),
                 user=user_id,
-                reaction=await bot.fetch_emoji(EMOJI_GUILD, PILK),
+                reaction=await bot.fetch_emoji(cfg.EMOJI_GUILD, cfg.PILK),
             )
         else:
             await bot.react_storm_user_for(
-                dt.timedelta(hours=1), user_id, await bot.fetch_emoji(EMOJI_GUILD, PILK)
+                dt.timedelta(hours=1),
+                user_id,
+                await bot.fetch_emoji(cfg.EMOJI_GUILD, cfg.PILK),
             )
     elif cmd == "restart":
         await ctx.respond(
@@ -415,9 +388,9 @@ async def sh(ctx: lb.Context):
                 h.ResponseType.MESSAGE_UPDATE, "Bot will not restart"
             )
     elif (
-        cmd in ASTROCYTE_LORE
-        and arg1 in ASTROCYTE_LORE
-        and arg2 in ASTROCYTE_LORE
+        cmd in cfg.ASTROCYTE_LORE
+        and arg1 in cfg.ASTROCYTE_LORE
+        and arg2 in cfg.ASTROCYTE_LORE
         and cmd not in [arg1, arg2]
         and arg1 != arg2
     ):
@@ -430,7 +403,7 @@ async def sh(ctx: lb.Context):
             ),
         )
         await bot.undo_react_storm_user(
-            ctx.author.id, await bot.fetch_emoji(EMOJI_GUILD, PILK)
+            ctx.author.id, await bot.fetch_emoji(cfg.EMOJI_GUILD, cfg.PILK)
         )
     else:
         await ctx.respond(content="Command not found")
@@ -467,14 +440,14 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
             flags=re.IGNORECASE,
         ),
         allowed_servers=cfg.pizza_servers,
-        allowed_uids=await bot.fetch_owner_ids() + [HIO_UID],
+        allowed_uids=await bot.fetch_owner_ids() + [cfg.HIO_UID],
     )
     bot.react_to_guild_messages(
         trigger_regex=re.compile(
             "long\s+live\s+the\s+queen",
             flags=re.IGNORECASE,
         ),
-        reaction=await bot.fetch_emoji(EMOJI_GUILD, TELESTO),
+        reaction=await bot.fetch_emoji(cfg.EMOJI_GUILD, cfg.TELESTO),
         allowed_servers=cfg.pizza_servers,
     )
 
@@ -482,32 +455,32 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
     bot.react_to_guild_reactions(
         trigger_regex=re.compile("^sweet[_ ]business$", flags=re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
-        allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
+        allowed_uids=await bot.fetch_owner_ids() + [cfg.BRYCE_UID],
     )
     for emoji_id in [
-        SWEET_BUSINESS,
-        CORPORATE_SPONSORSHIP,
-        DOWN_TO_BUSINESS,
-        GO_ABOUT_YOUR_BUSINESS,
+        cfg.SWEET_BUSINESS,
+        cfg.CORPORATE_SPONSORSHIP,
+        cfg.DOWN_TO_BUSINESS,
+        cfg.GO_ABOUT_YOUR_BUSINESS,
     ]:
         bot.react_to_guild_messages(
             trigger_regex=re.compile(
                 "^(…|\.\.\.)I love my job\.$", flags=re.RegexFlag.IGNORECASE
             ),
-            reaction=await bot.fetch_emoji(EMOJI_GUILD, emoji_id),
-            allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
+            reaction=await bot.fetch_emoji(cfg.EMOJI_GUILD, emoji_id),
+            allowed_uids=await bot.fetch_owner_ids() + [cfg.BRYCE_UID],
         )
     bot.react_storm_user_on_message(
         trigger_regex=re.compile("^(…|\.\.\.)I love my job\.$", flags=re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
-        allowed_uids=await bot.fetch_owner_ids() + [BRYCE_UID],
+        allowed_uids=await bot.fetch_owner_ids() + [cfg.BRYCE_UID],
         reactions=[
-            await bot.fetch_emoji(EMOJI_GUILD, emoji_id)
+            await bot.fetch_emoji(cfg.EMOJI_GUILD, emoji_id)
             for emoji_id in [
-                SWEET_BUSINESS,
-                CORPORATE_SPONSORSHIP,
-                DOWN_TO_BUSINESS,
-                GO_ABOUT_YOUR_BUSINESS,
+                cfg.SWEET_BUSINESS,
+                cfg.CORPORATE_SPONSORSHIP,
+                cfg.DOWN_TO_BUSINESS,
+                cfg.GO_ABOUT_YOUR_BUSINESS,
             ]
         ],
     )
