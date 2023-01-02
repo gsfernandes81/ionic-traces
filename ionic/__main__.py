@@ -496,7 +496,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
 
 
 @bot.command()
-@lb.option("channel", "Target channel to search", h.TextableGuildChannel, default=None)
+@lb.option("nojoy", "Ignores :rofl: and :joy: reactions",bool, default=True)
 @lb.option(
     "hours",
     "How far back should I pull messages from (int)",
@@ -505,6 +505,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
     max_value=24,
     min_value=1,
 )
+@lb.option("channel", "Target channel to search", h.TextableGuildChannel, default=None)
 @lb.command("reactionrank", "List top 5 reactions in specified channel")
 @lb.implements(lb.SlashCommand)
 async def ReactionRank(ctx: lb.Context) -> None:
@@ -550,6 +551,13 @@ async def ReactionRank(ctx: lb.Context) -> None:
     if not reaction_dict:  # A quick check to see if any emoji were found
         await ctx.respond("No reactions found with those criterea...")
         return
+    
+    if ctx.options.nojoy:   #   Remove certain laughing emoji if bool is True
+        reaction_dict.pop("😂", None)
+        reaction_dict.pop("🤣", None)
+        nojoy_str = "\n(Laughing reactions excluded)" # Add text to title_embed description indicating bool
+    else:
+        nojoy_str = ""
 
     reaction_list = list(reaction_dict.items())
     reaction_list.sort(
@@ -561,7 +569,7 @@ async def ReactionRank(ctx: lb.Context) -> None:
     #   This embed lays out the statistics of emojis vs messages searched.
     title_embed = h.Embed(
         title="Reaction Rankings",
-        description=f"Here are the top most used reactions from the past `{ctx.options.hours}` hours in <#{selected_channel_object.id}>",
+        description=f"Here are the top most used reactions from the past `{ctx.options.hours}` hours in <#{selected_channel_object.id}>{nojoy_str}",
         color=h.Color(0x0099FF),
     )
     title_embed.add_field(
