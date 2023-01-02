@@ -79,3 +79,5 @@ ASTROCYTE_LORE = [
         "Trial 93. I am now putting the Astrocyte Verse on my head—",
     ]
 ]
+EMOJI_MEDALS = [0x0001F947,0x0001F948,0x0001F949]
+EMBED_COLORS = [0xd4af37, 0xC0C0C0, 0xCD7F32]
