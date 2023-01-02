@@ -1,11 +1,12 @@
 import argparse
 import asyncio
 import datetime as dt
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta
+from decimal import Decimal, getcontext
 import random
 import sys
 from typing import List, Union
-from decimal import Decimal, getcontext
+import unicodedata
 
 import dateparser
 import hikari as h
@@ -493,9 +494,17 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
         allowed_servers=cfg.pizza_servers,
     )
 
+
 @bot.command()
 @lb.option("channel", "Target channel to search", h.TextableGuildChannel, default=None)
-@lb.option("hours","How far back should I pull messages from (int)", int, default=6, max_value=24,min_value=1 )
+@lb.option(
+    "hours",
+    "How far back should I pull messages from (int)",
+    int,
+    default=6,
+    max_value=24,
+    min_value=1,
+)
 @lb.command("reactionrank", "List top 5 reactions in specified channel")
 @lb.implements(lb.SlashCommand)
 async def ReactionRank(ctx: lb.Context) -> None:
@@ -503,22 +512,32 @@ async def ReactionRank(ctx: lb.Context) -> None:
     getcontext().prec = 2
     target_datetime = datetime.now() - timedelta(hours=ctx.options.hours)
 
-    selected_channel_object = await bot.fetch_channel(ctx.options.channel or ctx.channel_id)
+    selected_channel_object = await bot.fetch_channel(
+        ctx.options.channel or ctx.channel_id
+    )
     if isinstance(selected_channel_object, h.GuildCategory):
-        await ctx.respond(f"Sorry, I cant use that run this command on {selected_channel_object}, it is a category!")
+        await ctx.respond(
+            f"Sorry, I cant use that run this command on {selected_channel_object}, it is a category!"
+        )
         return
-    selected_channel_history = selected_channel_object.fetch_history(after=target_datetime)    # Grabs Lazy Iterator of all messages AFTER the target_datetime
+    selected_channel_history = selected_channel_object.fetch_history(
+        after=target_datetime
+    )  # Grabs Lazy Iterator of all messages AFTER the target_datetime
 
     reaction_dict = {}
     message_count = 0
-    # all unique reactions so I had the "genuis" idea of storing the reaction's str representation as a key in a dict,
-    # and setting its value to the count of the total number of that emoji. I have no idea if this is stupid, but it works LMAO.
+
+    # Here we iterate through each message, and check its reactions. If a reaction is
+    # NOT in dictionary, we set a key as the reactions text name, and set its value
+    # to be another dictionary with the running total "count" key and "object"
+    # holding the actual Emoji object itself
+    # The subtractions are so we dont count the bot's emoji
     async for message in selected_channel_history:
         for reaction in message.reactions:
             if reaction.emoji.name not in reaction_dict.keys():
-                reaction_dict[reaction.emoji.name] = { 
+                reaction_dict[reaction.emoji.name] = {
                     "count": reaction.count,
-                    "object": reaction.emoji
+                    "object": reaction.emoji,
                 }
                 if reaction.is_me:
                     reaction_dict[reaction.emoji.name]["count"] -= 1
@@ -528,38 +547,63 @@ async def ReactionRank(ctx: lb.Context) -> None:
                     reaction_dict[reaction.emoji.name]["count"] -= 1
         message_count += 1
 
-
-    if not reaction_dict:    # A quick check to see if any emoji were found 
+    if not reaction_dict:  # A quick check to see if any emoji were found
         await ctx.respond("No reactions found with those criterea...")
         return
 
     reaction_list = list(reaction_dict.items())
-    reaction_list.sort(key= lambda x: x[1]["count"], reverse= True)
-    
-    reaction_embeds = []
-    
+    reaction_list.sort(
+        key=lambda x: x[1]["count"], reverse=True
+    )  # Sort listed emoji from most to least
+
+    reaction_embeds = []  # List of embeds containing reactions to iterate through
+
+    #   This embed lays out the statistics of emojis vs messages searched.
     title_embed = h.Embed(
         title="Reaction Rankings",
         description=f"Here are the top most used reactions from the past `{ctx.options.hours}` hours in <#{selected_channel_object.id}>",
-        color = h.Color(0x0099FF)
-        )
-    title_embed.add_field(name="Messages",value=f"`{message_count}` messages searched",inline=True)
-    title_embed.add_field(name="Reactions",value=f"`{len(reaction_dict.keys())}` reactions found", inline=True)
-    title_embed.add_field(name="Average", value=f"`{Decimal(len(reaction_dict.keys())) / Decimal(message_count)}` reactions per message",inline=True)
+        color=h.Color(0x0099FF),
+    )
+    title_embed.add_field(
+        name="Messages", value=f"`{message_count}` messages searched", inline=True
+    )
+    title_embed.add_field(
+        name="Reactions",
+        value=f"`{len(reaction_dict.keys())}` reactions found",
+        inline=True,
+    )
+    title_embed.add_field(
+        name="Average",
+        value=f"`{Decimal(len(reaction_dict.keys())) / Decimal(message_count)}` reactions per message",
+        inline=True,
+    )
     reaction_embeds.append(title_embed)
 
+    #   Iterate through the list of unique emoji and turn the top three into their own embed
+    #   Then append the embed to the reaction_emmbed list
     for index, reaction in enumerate(reaction_list[:3]):
-        unicode_medal = cfg.EMOJI_MEDALS[index]
+        unicode_medal = cfg.EMOJI_MEDALS[index]  # Which emoji medal to use for place
+
+    #   Check if emoji is unicode, then turn it into its unicode name, else just return the
+    #   Custom Emoji name
+        if isinstance(reaction[1]["object"], h.UnicodeEmoji):
+            emoji_name = unicodedata.name(
+                reaction[1]["object"].name
+            )  
+        else:
+            emoji_name = reaction[1]["object"].name
+
         embed = h.Embed(
-            title=f'Rank {index + 1}  ' + chr(int(unicode_medal)) + ':',
-            description=f'`{reaction[1]["object"].name)`}\nUsed {reaction[1]["count"]} times',
-            color = h.Color(cfg.EMBED_COLORS[index])
+            title=f"Rank {index + 1}  " + chr(int(unicode_medal)) + ":",
+            description=f'`{emoji_name.lower()}`\nUsed {reaction[1]["count"]} times',
+            color=h.Color(cfg.EMBED_COLORS[index]),
         )
         embed.set_thumbnail(reaction[1]["object"].url)
         reaction_embeds.append(embed)
 
     await ctx.respond(embeds=reaction_embeds)
     return
+
 
 def main():
     """Install uvloop and start the bot"""
