@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import datetime as dt
-from datetime import datetime, timedelta
 from decimal import Decimal, getcontext
 import random
 import sys
@@ -13,7 +12,6 @@ import hikari as h
 import lightbulb as lb
 import regex as re
 import sqlalchemy as sql
-from sqlalchemy.sql.traversals import ColIdentityComparatorStrategy
 import uvloop
 from arrow import Arrow
 from pytz import utc
@@ -496,7 +494,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
 
 
 @bot.command()
-@lb.option("nojoy", "Ignores :rofl: and :joy: reactions",bool, default=True)
+@lb.option("channel", "Target channel to search", h.TextableGuildChannel, default=None)
 @lb.option(
     "hours",
     "How far back should I pull messages from (int)",
@@ -505,13 +503,13 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
     max_value=24,
     min_value=1,
 )
-@lb.option("channel", "Target channel to search", h.TextableGuildChannel, default=None)
+@lb.option("nojoy", "Ignores :rofl: and :joy: reactions", bool, default=True)
 @lb.command("reactionrank", "List top 5 reactions in specified channel")
 @lb.implements(lb.SlashCommand)
-async def ReactionRank(ctx: lb.Context) -> None:
+async def reaction_rank(ctx: lb.Context) -> None:
     """Command takes channel argument and optional hours argument and returns embed of reactions pulled from messages in the channel"""
     getcontext().prec = 2
-    target_datetime = datetime.now() - timedelta(hours=ctx.options.hours)
+    target_datetime = dt.datetime.now() - dt.timedelta(hours=ctx.options.hours)
 
     selected_channel_object = await bot.fetch_channel(
         ctx.options.channel or ctx.channel_id
@@ -551,11 +549,11 @@ async def ReactionRank(ctx: lb.Context) -> None:
     if not reaction_dict:  # A quick check to see if any emoji were found
         await ctx.respond("No reactions found with those criterea...")
         return
-    
-    if ctx.options.nojoy:   #   Remove certain laughing emoji if bool is True
+
+    if ctx.options.nojoy:  #   Remove certain laughing emoji if bool is True
         reaction_dict.pop("😂", None)
         reaction_dict.pop("🤣", None)
-        nojoy_str = "\n(Laughing reactions excluded)" # Add text to title_embed description indicating bool
+        nojoy_str = "\n(Laughing reactions excluded)"  # Add text to title_embed description indicating bool
     else:
         nojoy_str = ""
 
@@ -592,12 +590,10 @@ async def ReactionRank(ctx: lb.Context) -> None:
     for index, reaction in enumerate(reaction_list[:3]):
         unicode_medal = cfg.EMOJI_MEDALS[index]  # Which emoji medal to use for place
 
-    #   Check if emoji is unicode, then turn it into its unicode name, else just return the
-    #   Custom Emoji name
+        #   Check if emoji is unicode, then turn it into its unicode name, else just return the
+        #   Custom Emoji name
         if isinstance(reaction[1]["object"], h.UnicodeEmoji):
-            emoji_name = unicodedata.name(
-                reaction[1]["object"].name
-            )  
+            emoji_name = unicodedata.name(reaction[1]["object"].name)
         else:
             emoji_name = reaction[1]["object"].name
 
