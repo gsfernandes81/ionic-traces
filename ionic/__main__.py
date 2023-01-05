@@ -9,6 +9,7 @@ import unicodedata
 
 import dateparser
 import hikari as h
+from hikari import guilds
 import lightbulb as lb
 import regex as re
 import sqlalchemy as sql
@@ -504,7 +505,11 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
     min_value=1,
 )
 @lb.option("nojoy", "Ignores :rofl: and :joy: reactions", bool, default=True)
-@lb.command("reactionrank", "List top 5 reactions in specified channel")
+@lb.command(
+    "reactionrank",
+    "List top 5 reactions in specified channel",
+    guilds=cfg.pizza_servers,
+)
 @lb.implements(lb.SlashCommand)
 async def reaction_rank(ctx: lb.Context) -> None:
     """Command takes channel argument and optional hours argument and returns embed of reactions pulled from messages in the channel"""
@@ -545,6 +550,10 @@ async def reaction_rank(ctx: lb.Context) -> None:
                 if reaction.is_me:
                     reaction_dict[reaction.emoji.name]["count"] -= 1
         message_count += 1
+
+    delete_empty = [key for key in reaction_dict if reaction_dict[key]["count"] < 1]
+    for key in delete_empty:    #   Checking for and deleting any emoji with 0 count
+        del reaction_dict[key]
 
     if not reaction_dict:  # A quick check to see if any emoji were found
         await ctx.respond("No reactions found with those criterea...")
