@@ -552,7 +552,7 @@ async def reaction_rank(ctx: lb.Context) -> None:
         message_count += 1
 
     delete_empty = [key for key in reaction_dict if reaction_dict[key]["count"] < 1]
-    for key in delete_empty:    #   Checking for and deleting any emoji with 0 count
+    for key in delete_empty:  #   Checking for and deleting any emoji with 0 count
         del reaction_dict[key]
 
     if not reaction_dict:  # A quick check to see if any emoji were found
