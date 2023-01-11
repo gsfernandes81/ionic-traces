@@ -3,7 +3,6 @@ import asyncio
 import datetime as dt
 import random
 import sys
-import unicodedata
 from typing import List, Union
 
 import dateparser
