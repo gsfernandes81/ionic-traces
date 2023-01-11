@@ -130,7 +130,7 @@ async def _embed_from_user_times_and_text(
     for time in time_list:
         reply = rgx_dt_markers.sub(time, reply, count=1)
 
-    return h.Embed(description=reply)
+    return h.Embed(description=reply, colour=cfg.EXOTIC_YELLOW)
 
 
 async def _add_user_persona_to_embed(event: h.MessageCreateEvent, embed: h.Embed):
