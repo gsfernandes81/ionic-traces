@@ -549,7 +549,7 @@ async def reaction_rank(ctx: lb.Context) -> None:
         message_count += 1
 
     delete_empty = [key for key in reaction_dict if reaction_dict[key]["count"] < 1]
-    #   Checking for and deleting any emoji with 0 count
+    # Checking for and deleting any emoji with 0 count
     for key in delete_empty:
         del reaction_dict[key]
 
@@ -574,7 +574,7 @@ async def reaction_rank(ctx: lb.Context) -> None:
     # List of embeds containing reactions to iterate through
     reaction_embeds = []
 
-    #   This embed lays out the statistics of emojis vs messages searched.
+    # This embed lays out the statistics of emojis vs messages searched.
     title_embed = h.Embed(
         title="Reaction Rankings",
         description=f"Here are the top most used reactions from the past "
@@ -605,8 +605,8 @@ async def reaction_rank(ctx: lb.Context) -> None:
     for index, reaction in enumerate(reaction_list[:3]):
         unicode_medal = cfg.RANK_EMOJI_MEDALS[index]
 
-        #   Check if emoji is unicode, then turn it into its unicode name,
-        #   else just return the Custom Emoji name
+        # Check if emoji is unicode, then turn it into its unicode name,
+        # else just return the Custom Emoji name
         if isinstance(reaction[1]["object"], h.UnicodeEmoji):
             emoji_name = (
                 emoji.demojize(reaction[1]["object"].name)
