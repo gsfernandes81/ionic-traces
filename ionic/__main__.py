@@ -3,10 +3,11 @@ import asyncio
 import datetime as dt
 import random
 import sys
-from typing import List, Union
 import unicodedata
+from typing import List, Union
 
 import dateparser
+import emoji
 import hikari as h
 import lightbulb as lb
 import regex as re
@@ -17,7 +18,6 @@ from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
-import emoji
 
 from . import cfg
 from .bot import SpecialFeaturesBot
@@ -608,7 +608,11 @@ async def reaction_rank(ctx: lb.Context) -> None:
         #   Check if emoji is unicode, then turn it into its unicode name,
         #   else just return the Custom Emoji name
         if isinstance(reaction[1]["object"], h.UnicodeEmoji):
-            emoji_name = emoji.demojize(reaction[1]["object"].name).replace(":","").replace("_"," ")
+            emoji_name = (
+                emoji.demojize(reaction[1]["object"].name)
+                .replace(":", "")
+                .replace("_", " ")
+            )
         else:
             emoji_name = reaction[1]["object"].name
 
