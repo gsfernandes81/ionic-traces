@@ -507,6 +507,7 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
     "reactionrank",
     "List top 5 reactions in specified channel",
     guilds=cfg.pizza_servers,
+    auto_defer=True,
 )
 @lb.implements(lb.SlashCommand)
 async def reaction_rank(ctx: lb.Context) -> None:
