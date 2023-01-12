@@ -363,7 +363,7 @@ async def sh(ctx: lb.Context):
     elif cmd == "restart":
         await ctx.respond(
             content="Are you sure you want to restart?",
-            component=bot.rest.build_action_row()
+            component=bot.rest.build_message_action_row()
             .add_button(h.ButtonStyle.DANGER, "restart_button_yes")
             .set_label("Yes")
             .add_to_container()
