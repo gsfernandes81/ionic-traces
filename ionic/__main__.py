@@ -6,6 +6,7 @@ import sys
 from typing import List, Union
 
 import dateparser
+import emoji
 import hikari as h
 import lightbulb as lb
 import regex as re
@@ -489,6 +490,141 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
         trigger_regex=re.compile("fu+[c]{0,1}kbo[yi]+$", flags=re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
+
+
+@bot.command()
+@lb.option("channel", "Channel to search", h.TextableGuildChannel, default=None)
+@lb.option(
+    "hours",
+    "How far back to pull messages from",
+    int,
+    default=6,
+    max_value=24,
+    min_value=1,
+)
+@lb.option("nojoy", "Ignores 🤣 and 😂 reactions", bool, default=True)
+@lb.command(
+    "reactionrank",
+    "List top 5 reactions in specified channel",
+    guilds=cfg.pizza_servers,
+)
+@lb.implements(lb.SlashCommand)
+async def reaction_rank(ctx: lb.Context) -> None:
+    """Command takes channel argument and optional hours argument and
+    returns embed of reactions pulled from messages in the channel"""
+
+    target_datetime = dt.datetime.now() - dt.timedelta(hours=ctx.options.hours)
+
+    channel = await bot.fetch_channel(ctx.options.channel or ctx.channel_id)
+
+    # Check if the channel is textable
+    if not isinstance(channel, h.TextableGuildChannel):
+        await ctx.respond(f"This command only works on textable channels")
+        return
+
+    # Grabs Lazy Iterator of all messages AFTER the target_datetime
+    channel_history = channel.fetch_history(after=target_datetime)
+    reaction_dict = {}
+    message_count = 0
+
+    # We iterate through each message, and check its reactions. If a reaction is
+    # NOT in dictionary, we set a key as the reactions text name, and set its value
+    # to be another dictionary with the running total "count" key and "object"
+    # holding the actual Emoji object itself
+    async for message in channel_history:
+        for reaction in message.reactions:
+            if reaction.emoji.name not in reaction_dict.keys():
+                reaction_dict[reaction.emoji.name] = {
+                    "count": reaction.count,
+                    "object": reaction.emoji,
+                }
+                if reaction.is_me:
+                    reaction_dict[reaction.emoji.name]["count"] -= 1
+            else:
+                reaction_dict[reaction.emoji.name]["count"] += reaction.count
+                # This subtractions are so we dont count the bot's emoji
+                if reaction.is_me:
+                    reaction_dict[reaction.emoji.name]["count"] -= 1
+        message_count += 1
+
+    delete_empty = [key for key in reaction_dict if reaction_dict[key]["count"] < 1]
+    # Checking for and deleting any emoji with 0 count
+    for key in delete_empty:
+        del reaction_dict[key]
+
+    # A quick check to see if any emoji were found
+    if not reaction_dict:
+        await ctx.respond("No reactions found : (")
+        return
+
+    # Remove the below laughing emoji if requested
+    if ctx.options.nojoy:
+        reaction_dict.pop("😂", None)
+        reaction_dict.pop("🤣", None)
+        nojoy_str = "\n(Laughing reactions excluded)"
+        # Add text to title_embed description indicating bool
+    else:
+        nojoy_str = ""
+
+    reaction_list = list(reaction_dict.items())
+    # Sort listed emoji from most frequent to least frequent
+    reaction_list.sort(key=lambda x: x[1]["count"], reverse=True)
+
+    # List of embeds containing reactions to iterate through
+    reaction_embeds = []
+
+    # This embed lays out the statistics of emojis vs messages searched.
+    title_embed = h.Embed(
+        title="Reaction Rankings",
+        description=f"Here are the top most used reactions from the past "
+        + f"`{ctx.options.hours}` hours in <#{channel.id}>{nojoy_str}",
+        color=h.Color(0x0099FF),
+    )
+    title_embed.add_field(
+        name="Messages", value=f"`{message_count}` messages searched", inline=True
+    )
+    title_embed.add_field(
+        name="Reactions",
+        value=f"`{len(reaction_dict.keys())}` reactions found",
+        inline=True,
+    )
+    title_embed.add_field(
+        name="Average",
+        value="{} reactions per message".format(
+            round(len(reaction_dict.keys()) / message_count, 2)
+            if message_count != 0
+            else 0
+        ),
+        inline=True,
+    )
+    reaction_embeds.append(title_embed)
+
+    # Iterate through the list of unique emoji and turn the top three into their
+    # own embed, then append the embed to the reaction_emmbed list
+    for index, reaction in enumerate(reaction_list[:3]):
+        unicode_medal = cfg.RANK_EMOJI_MEDALS[index]
+
+        # Check if emoji is unicode, then turn it into its unicode name,
+        # else just return the Custom Emoji name
+        if isinstance(reaction[1]["object"], h.UnicodeEmoji):
+            emoji_name = (
+                emoji.demojize(reaction[1]["object"].name)
+                .replace(":", "")
+                .replace("_", " ")
+            )
+        else:
+            emoji_name = reaction[1]["object"].name
+
+        embed = h.Embed(
+            title=f"Rank {index + 1}  " + chr(int(unicode_medal)) + ":",
+            description=f'`{emoji_name.lower()}`\nUsed {reaction[1]["count"]} times',
+            color=h.Color(cfg.RANK_EMBED_COLORS[index]),
+        )
+        embed.set_thumbnail(reaction[1]["object"].url)
+        reaction_embeds.append(embed)
+
+    await ctx.respond(embeds=reaction_embeds)
+    return
 
 
 def main():
