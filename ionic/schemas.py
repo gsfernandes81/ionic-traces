@@ -19,7 +19,7 @@ class User(Base):
     tz = Column("tz", VARCHAR(64))
     # Column used to mark a user for an update
     update_id = Column("update_id", BigInteger)
-    update_dt = Column("update_dt", TIMESTAMP, default=dt.datetime.now(tz=utc))
+    update_dt = Column("update_dt", TIMESTAMP)
 
     def __init__(self, id, tz):
         super().__init__()
