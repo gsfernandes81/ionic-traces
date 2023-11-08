@@ -1,0 +1,25 @@
+# fly.toml app configuration file generated for ionic-traces on 2023-07-22T20:28:21+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "ionic-traces"
+primary_region = "lhr"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines_running = 1
+  processes = ["web", "bot"]
+
+[env]
+APP_URL="https://ionic-traces.fly.dev"
+HTTPS_ENABLED="True"
+PIZZA_SERVER_LIST="860597632556466177, 309437358225489925, 920027638179966996, 861255712025083904, 646920519425196042, 1003878880442073128, 877236484091043910, 530237003011194880, 615383343923593219, 809422163236356096, 607788877024854016"
+PORT="8080"
+
+[processes]
+  web = "/venv/bin/python -OO -m ionic.web"
+  bot = "/venv/bin/python -OO -m ionic"
