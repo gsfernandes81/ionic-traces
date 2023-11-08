@@ -5,10 +5,12 @@ import random
 import sys
 from typing import List, Union
 
+import aiodebug.log_slow_callbacks
 import dateparser
 import emoji
 import hikari as h
 import lightbulb as lb
+import logwood.compat
 import regex as re
 import sqlalchemy as sql
 import uvloop
@@ -22,6 +24,9 @@ from . import cfg
 from .bot import SpecialFeaturesBot
 from .cfg import REGISTRATION_TIMEOUT
 from .schemas import Base, User
+
+logwood.compat.redirect_standard_logging()
+aiodebug.log_slow_callbacks.enable(0.05)
 
 db_engine = create_async_engine(cfg.db_url_async, connect_args=cfg.db_connect_args)
 db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
