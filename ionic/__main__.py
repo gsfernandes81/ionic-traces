@@ -86,7 +86,9 @@ async def _get_user_by_id(id: int) -> Union[User, None]:
     """Returns the user or None if they aren't found in the timezone db"""
     async with db_session() as session:
         async with session.begin():
-            user = (await session.execute(select(User).where(User.id == id))).fetchone()
+            user = (
+                await session.execute(select(User).where(User.id == int(id)))
+            ).fetchone()
     return user if user is None else user[0]
 
 
@@ -215,7 +217,7 @@ async def deregister_handler(ctx: lb.Context):
     async with db_session() as session:
         async with session.begin():
             # Delete the user's row
-            await session.execute(delete(User).where(User.id == ctx.author.id))
+            await session.execute(delete(User).where(User.id == int(ctx.author.id)))
 
     await ctx.respond("You have successfully deregistered")
 
@@ -635,7 +637,6 @@ def main():
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--release", action="store_true", help="Performs release tasks for heroku"
