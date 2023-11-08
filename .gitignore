@@ -1,6 +1,6 @@
 *.swp
 *.swo
-.env
+.env*
 *.pyc
 ToDo
 .python-version

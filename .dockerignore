@@ -1,0 +1,12 @@
+# flyctl launch added from .gitignore
+**/*.swp
+**/*.swo
+**/.env*
+**/*.pyc
+**/ToDo
+**/.python-version
+
+# flyctl launch added from .pytest_cache/.gitignore
+# Created by pytest automatically.
+.pytest_cache/**/*
+fly.toml
