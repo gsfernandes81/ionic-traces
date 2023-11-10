@@ -8,7 +8,6 @@ from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from jinja2.loaders import PackageLoader
 from jinja2.utils import select_autoescape
-from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql.expression import select

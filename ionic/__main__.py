@@ -15,7 +15,6 @@ import regex as re
 import sqlalchemy as sql
 import uvloop
 from arrow import Arrow
-from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select

@@ -1,7 +1,6 @@
 import datetime as dt
 import asyncio
 
-from pytz import utc
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql.schema import Column
@@ -25,7 +24,7 @@ class User(Base):
         super().__init__()
         self.id = id
         self.tz = tz
-        self.update_dt = dt.datetime.now(tz=utc)
+        self.update_dt = dt.datetime.now(tz=dt.timezone.utc)
 
 
 async def recreate_all():
