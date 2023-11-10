@@ -49,6 +49,33 @@ bot = SpecialFeaturesBot(
 )
 
 
+async def update_status(guild_count: int):
+    await bot.update_presence(
+        activity=h.Activity(
+            name="{} servers : )".format(guild_count),
+            type=h.ActivityType.LISTENING,
+        )
+    )
+
+
+@bot.listen()
+async def on_start(event: lb.LightbulbStartedEvent):
+    bot.d.guild_count = len(await bot.rest.fetch_my_guilds())
+    await update_status(bot.d.guild_count)
+
+
+@bot.listen()
+async def on_guild_add(event: h.GuildJoinEvent):
+    bot.d.guild_count += 1
+    await update_status(bot.d.guild_count)
+
+
+@bot.listen()
+async def on_guild_rm(event: h.GuildLeaveEvent):
+    bot.d.guild_count -= 1
+    await update_status(bot.d.guild_count)
+
+
 async def _time_list_from_string(text: str) -> List[dt.datetime]:
     """Converts a string to a parsed list of dt.datetimes
 
