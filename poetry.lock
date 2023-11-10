@@ -1106,16 +1106,6 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
-name = "logwood"
-version = "3.1.0"
-description = "Simple, but fast logging library for Python 3.5+"
-optional = false
-python-versions = "*"
-files = [
-    {file = "logwood-3.1.0.tar.gz", hash = "sha256:33784f8192159e80768356c0474180ac168df5085edff4b112af2bc60f359126"},
-]
-
-[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -2122,4 +2112,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.0,<3.12"
-content-hash = "1643d1b4b375f0b411b11979538d2622be65f9c01a628f60ed441fa8d12b6bd0"
+content-hash = "bd5fa7bf8ec91c5abc697717e9593fa11bbabff7764a6ee8b80cd47e21d1cf09"

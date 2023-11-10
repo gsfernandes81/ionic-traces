@@ -23,7 +23,6 @@ attrs = "^23.1.0"
 honcho = "^1.1.0"
 asyncmy = "^0.2.8"
 emoji = "^2.8.0"
-logwood = "^3.1.0"
 aiodebug = "^2.3.0"
 werkzeug = "^3.0.0"
 
