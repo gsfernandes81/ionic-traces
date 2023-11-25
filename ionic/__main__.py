@@ -101,6 +101,8 @@ async def _time_list_from_string(text: str) -> List[dt.datetime]:
             time,
             languages=["en"],
             settings={"PREFER_DATES_FROM": "future"},
+            # Additionally try to recognize 24hr time
+            date_formats=["%H%M hrs", "%H%M"],
         )
         for time in time_list
     ]
