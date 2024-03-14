@@ -14,6 +14,7 @@ import regex as re
 import sqlalchemy as sql
 import uvloop
 from arrow import Arrow
+from lightbulb.ext import tasks
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
@@ -661,9 +662,17 @@ async def reaction_rank(ctx: lb.Context) -> None:
     return
 
 
+# Run a keepalive task for the database
+# Query user id 0 every hour
+@tasks.task(h=1, auto_start=True, wait_before_execution=False)
+async def keepalive():
+    await _get_user_by_id(0)
+
+
 def main():
     """Install uvloop and start the bot"""
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    tasks.load(bot)
     bot.run()
 
 
