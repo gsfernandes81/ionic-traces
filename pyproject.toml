@@ -28,7 +28,7 @@ werkzeug = "^3.0.0"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.4"
-black = "^22.10.0"
+black = "^24.3.0"
 pyflakes = "^2.5.0"
 rope = "^1.4.0"
 
