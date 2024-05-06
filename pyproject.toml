@@ -24,7 +24,7 @@ honcho = "^1.1.0"
 asyncmy = "^0.2.8"
 emoji = "^2.8.0"
 aiodebug = "^2.3.0"
-werkzeug = "^3.0.0"
+werkzeug = "^3.0.3"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.4"
