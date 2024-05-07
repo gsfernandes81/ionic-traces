@@ -1,12 +1,13 @@
 # Define our custom discord bot classes
 # This is the base lightbulb.BotApp but with added utility functions
 
-import lightbulb as lb
 import datetime as dt
+from typing import Dict, List, Union
+
 import hikari as h
+import lightbulb as lb
 import regex as re
 
-from typing import Dict, Union, List
 from . import cfg
 
 
@@ -181,7 +182,7 @@ class SpecialFeaturesBot(CachedFetchBot):
 
         react_till = dt.datetime.now() + time
 
-        if not reaction in self.reactors_register:
+        if reaction not in self.reactors_register:
             self.reactors_register[reaction] = {}
 
         try:
@@ -205,7 +206,7 @@ class SpecialFeaturesBot(CachedFetchBot):
         else:
             user_id = user.id
 
-        if not reaction in self.reactors_register:
+        if reaction not in self.reactors_register:
             if not (
                 isinstance(reaction, h.KnownCustomEmoji)
                 and (

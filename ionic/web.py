@@ -3,13 +3,13 @@ import datetime as dt
 
 import jinja2
 import quart
-from quart import jsonify
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from jinja2.loaders import PackageLoader
 from jinja2.utils import select_autoescape
+from quart import jsonify
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import select
 
 from . import cfg

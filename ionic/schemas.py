@@ -1,10 +1,10 @@
-import datetime as dt
 import asyncio
+import datetime as dt
 
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql.schema import Column
-from sqlalchemy.sql.sqltypes import VARCHAR, BigInteger, TIMESTAMP
+from sqlalchemy.sql.sqltypes import TIMESTAMP, VARCHAR, BigInteger
 
 from . import cfg
 

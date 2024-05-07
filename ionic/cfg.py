@@ -1,5 +1,4 @@
 import datetime as dt
-import re
 import ssl
 from os import getenv as _getenv
 

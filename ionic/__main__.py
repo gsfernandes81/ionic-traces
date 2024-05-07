@@ -107,7 +107,7 @@ async def _time_list_from_string(text: str) -> List[dt.datetime]:
         for time in time_list
     ]
     # Filter out items we don't understand
-    time_list = [time for time in time_list if time != None]
+    time_list = [time for time in time_list if time is not None]
     # Filter out items in an incorrect format
     time_list = [time for time in time_list if isinstance(time, dt.datetime)]
     return time_list
@@ -228,9 +228,7 @@ async def register_user(message: h.Message):
         + "This will collect and store your discord id and your timezone.\n"
         + "Both of these are only used to understand what time you mean when you use the bot. "
         + "This data is stored securely and not processed in any way and can be deleted with "
-        + "`/unregister` and you can reregister by typing <1:00 pm> (or any other time) in a ".format(
-            (await bot.fetch_channel(message.channel_id)).name
-        )
+        + "`/unregister` and you can reregister by typing <1:00 pm> (or any other time) in a "
         + "server with the bot."
     )
 
@@ -553,7 +551,7 @@ async def reaction_rank(ctx: lb.Context) -> None:
 
     # Check if the channel is textable
     if not isinstance(channel, h.TextableGuildChannel):
-        await ctx.respond(f"This command only works on textable channels")
+        await ctx.respond("This command only works on textable channels")
         return
 
     # Grabs Lazy Iterator of all messages AFTER the target_datetime
@@ -610,7 +608,7 @@ async def reaction_rank(ctx: lb.Context) -> None:
     # This embed lays out the statistics of emojis vs messages searched.
     title_embed = h.Embed(
         title="Reaction Rankings",
-        description=f"Here are the top most used reactions from the past "
+        description="Here are the top most used reactions from the past "
         + f"`{ctx.options.hours}` hours in <#{channel.id}>{nojoy_str}",
         color=h.Color(0x0099FF),
     )
