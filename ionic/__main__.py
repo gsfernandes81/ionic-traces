@@ -1,3 +1,18 @@
+# Copyright © 2019-present gsfernandes81
+
+# This file is part of "ionic-traces" henceforth referred to as "ionic".
+
+# ionic is free software: you can redistribute it and/or modify it under the
+# terms of the GNU Affero General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later version.
+
+# ionic is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License along with
+# ionic. If not, see <https://www.gnu.org/licenses/>.
+
 import argparse
 import asyncio
 import datetime as dt
@@ -14,6 +29,7 @@ import regex as re
 import sqlalchemy as sql
 import uvloop
 from arrow import Arrow
+from dd.anchor import posts
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
@@ -649,7 +665,7 @@ async def reaction_rank(ctx: lb.Context) -> None:
 
         embed = h.Embed(
             title=f"Rank {index + 1}  " + chr(int(unicode_medal)) + ":",
-            description=f'`{emoji_name.lower()}`\nUsed {reaction[1]["count"]} times',
+            description=f"`{emoji_name.lower()}`\nUsed {reaction[1]['count']} times",
             color=h.Color(cfg.RANK_EMBED_COLORS[index]),
         )
         embed.set_thumbnail(reaction[1]["object"].url)
@@ -689,4 +705,7 @@ if __name__ == "__main__":
         # None as of now
 
         # If running an already deployed release, start the discord client
+
+    posts.register(bot)
+
     main()
