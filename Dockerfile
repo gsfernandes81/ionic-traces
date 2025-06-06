@@ -1,4 +1,4 @@
-FROM python:3.11-alpine as base
+FROM python:3.12-alpine as base
 
 RUN apk update
 RUN apk add --no-cache git gcc g++ libffi-dev

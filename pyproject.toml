@@ -26,7 +26,7 @@ asyncmy = "^0.2.8"
 emoji = "^2.8.0"
 aiodebug = "^2.3.0"
 werkzeug = "^3.0.3"
-dd = {git = "https://github.com/gsfernandes81/destiny-director.git"}
+dd = {git = "https://github.com/gsfernandes81/destiny-director.git", rev = "b0eddbb"}
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.4"
