@@ -162,6 +162,36 @@ async def _convert_time_list_fm_user(user: User, time_list: List) -> List[str]:
     return discord_time_list
 
 
+@bot.listen()
+async def on_under_18_detect(event: h.MemberUpdateEvent):
+    """If a user in BSC gets the under 18 role then attempt to kick them"""
+    if event.member.is_bot or event.member.is_system:
+        return
+
+    # Temp hardcode the bsc guild & u18 role id
+    bsc_guild_id = 827787254763618304
+    bsc_log_channel_id = 1372325844466405407
+    u18_role_id = 1311133717351104532
+
+    if event.guild_id != bsc_guild_id:
+        return
+
+    if u18_role_id in event.member.role_ids:
+        # Attempt to kick the user
+        try:
+            # await event.member.kick("Under 18 role detected")
+            await event.member.kick(reason="Under 18 role detected")
+            await bot.fetch_channel(bsc_log_channel_id).send(
+                f"User {event.member.mention} has been kicked for having the under 18 role."
+                f" (ID: {event.member.id})"
+                f" (Name: {event.member.username}#{event.member.discriminator})"
+            )
+        except h.ForbiddenError:
+            await bot.fetch_channel(bsc_log_channel_id).send(
+                "I do not have permission to kick users in this server. (SHOCK!?!?!)"
+            )
+
+
 async def _reply_from_user_and_times(user: User, time_list: List) -> str:
     time_list = await _convert_time_list_fm_user(user, time_list)
     # Create reply text
