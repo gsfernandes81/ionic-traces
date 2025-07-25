@@ -539,6 +539,29 @@ async def on_lb_start(event: lb.LightbulbStartedEvent):
     )
 
 
+@bot.listen()
+async def lora_hold_please(event: h.MessageCreateEvent):
+    """If the message is from Lora, reply with elevator music gif"""
+    hold_please_gifs = [
+        "https://tenor.com/t6K6.gif",
+        "https://tenor.com/beyHX.gif",
+        "https://tenor.com/UtdH.gif",
+        "https://tenor.com/WvmO.gif",
+        "https://tenor.com/fWj6NgL2S0g.gif",
+    ]
+    hold_please_unique_gif = "https://tenor.com/j3xqnMWkfk3.gif"
+
+    if event.author.id == 203516362193240064 and "holdplease" in str(
+        event.message.content
+    ).lower().replace(" ", "").replace("\n", ""):
+        if random.randint(0, 1000) < 1:
+            hold_please_selected_gif = hold_please_unique_gif
+        else:
+            hold_please_selected_gif = random.choice(hold_please_gifs)
+
+        await event.message.respond(hold_please_selected_gif, reply=True)
+
+
 @bot.command()
 @lb.option("channel", "Channel to search", h.TextableGuildChannel, default=None)
 @lb.option(
