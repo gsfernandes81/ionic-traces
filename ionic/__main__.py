@@ -759,6 +759,8 @@ if __name__ == "__main__":
 
         # If running an already deployed release, start the discord client
 
+    posts.cfg.kyber_discord_server_id = 827787254763618304
+    posts.cfg.control_discord_server_id = 1318291785130311773
     posts.register(bot)
 
     main()
