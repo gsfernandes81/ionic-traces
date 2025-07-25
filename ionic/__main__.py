@@ -297,6 +297,103 @@ async def deregister_handler(ctx: lb.Context):
     await ctx.respond("You have successfully deregistered")
 
 
+@bot.command
+@lb.command(
+    "time",
+    "Convert time",
+    guilds=cfg.pizza_servers,
+)
+@lb.implements(lb.SlashCommandGroup)
+async def time_group(ctx: lb.Context):
+    """Group command for time conversion commands"""
+    # This is just a group command, so we don't need to do anything here
+    pass
+
+
+@time_group.child
+@lb.option(
+    "your_time",
+    "The time you want to convert",
+    str,
+)
+@lb.command(
+    "charlemagne",
+    "If you want to convert to Charlemagne event time format",
+    auto_defer=True,
+    pass_options=True,
+    ephemeral=True,
+)
+@lb.implements(lb.SlashSubCommand)
+async def charlemagne_time(ctx: lb.Context, your_time: str):
+    """Converts the time in the message to Charlemagne event time format"""
+    # Get the message content
+    content = your_time.strip()
+    # If the content is empty, return an error
+    if not content:
+        await ctx.respond("You need to provide a time to convert")
+        return
+
+    # Get the user from the db
+    user = await _get_user_by_id(ctx.author.id)
+    # If the user is not registered, send a registration message
+    if user is None or user.tz == "":
+        await ctx.respond(
+            "You haven't registered with me yet\n"
+            + "Sending you a registration link in a dm...",
+            flags=h.MessageFlag.EPHEMERAL,
+        )
+        # TODO Buttons here
+        # await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
+        # await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
+        await register_user(ctx.message)
+        return
+
+    # If the user is registered, convert the time
+    time_list = await _time_list_from_string(f"<{content}>")
+    # If no times are specified/understood, skip the message
+    if len(time_list) == 0:
+        await ctx.respond(
+            f"I couldn't understand the time you provided:\n`{content}`\n"
+        )
+        return
+    elif len(time_list) > 1:
+        await ctx.respond(
+            "I can only convert one time at a time, please try again with a single time:\n"
+            f"`{content}`\n",
+            flags=h.MessageFlag.EPHEMERAL,
+        )
+        return
+
+    # Convert the time to Charlemagne event time format
+    time_list = await _convert_time_list_fm_user(user, time_list)
+
+    # Convert the unix UTC time to "h:m am/pm UTC m/d" format
+    datetime_ = Arrow.fromtimestamp(
+        int(time_list[0][3:-3]),
+        tzinfo="UTC",  # Strip away the <t: and :t> parts
+    )
+    time = "{hour}:{minute} {am_pm} UTC {month}/{day}".format(
+        hour=datetime_.format("h"),
+        minute=datetime_.format("mm"),
+        am_pm=datetime_.format("A").lower(),
+        month=datetime_.format("M"),
+        day=datetime_.format("D"),
+    )
+    # Create the response text
+    response_text = (
+        "Charlemagne event time format: \n"
+        + "```\n"
+        + time
+        + "\n```"
+        + "\n\n"
+        + "This is the time you provided: "
+        + content
+    )
+    await ctx.respond(
+        content=response_text,
+    )
+
+
 @bot.listen()
 async def time_message_handler(event: h.MessageCreateEvent):
     """Coroutine to handle time conversions
