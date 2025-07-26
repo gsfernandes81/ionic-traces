@@ -16,10 +16,8 @@
 import argparse
 import asyncio
 import datetime as dt
-import logging
 import random
 import sys
-from collections import defaultdict
 from typing import List, Union
 
 import aiodebug.log_slow_callbacks
@@ -462,87 +460,6 @@ async def time_message_handler(event: h.MessageCreateEvent):
         # Replace the below with buttons
         # await response_msg.add_reaction(MESSAGE_REFRESH_REACTION)
         # await response_msg.add_reaction(MESSAGE_DELETE_REACTION)
-
-
-@bot.command
-@lb.option("dry_run", "Dry run the command", bool, default=True)
-@lb.command(
-    "wf_role_fix",
-    "WF ROLE FIX",
-    guilds=[827787254763618304],  # BSC
-    auto_defer=True,
-    pass_options=True,
-)
-@lb.implements(lb.SlashCommand)
-async def wf_role_fix(ctx: lb.Context, dry_run: bool = True):
-    print("Running Warframe role fix command...")
-    # Channel with logs for which role removes need to be reversed
-    log_channel: h.GuildTextChannel = await bot.rest.fetch_channel(1360077905152966848)
-
-    users_with_wf_role_removed = set()
-
-    response = await ctx.respond("Working working")
-    command_channel: h.TextableGuildChannel = ctx.get_channel()
-
-    # Async iterate through all messages after 14-Jun-2025
-    async for message in log_channel.fetch_history(after=dt.datetime(2025, 6, 14)):
-        # If the message has no embeds, skip it
-        if not message.embeds:
-            continue
-
-        embed = message.embeds[0]
-
-        if not embed.description:
-            continue
-
-        user = None
-        wf_role_removed = False
-        guild = await bot.rest.fetch_guild(827787254763618304)
-        wf_role: h.Role = guild.get_role(827787254763618305)
-
-        for line in embed.description.splitlines():
-            line = line[1:] if line.startswith(">") else line
-            line = line.replace("*", "").strip(" \n")
-            # If the line starts with "Removed role", we need to reverse it
-            if line.startswith("User: "):
-                user = line.split("(")[-1]
-                user = user.strip("<@>)")
-            elif user and line == (f"Removed: <@&{wf_role.id}>"):
-                wf_role_removed = True
-
-        if user and wf_role_removed:
-            # If we have a user and the Warframe role was removed, add them to the set
-            users_with_wf_role_removed.add(user)
-
-    second_response = (
-        "Found {} users who had the Warframe role removed.\n".format(
-            len(users_with_wf_role_removed)
-        )
-        + "Users are:\n"
-        + "\n".join("<@{}>".format(user) for user in users_with_wf_role_removed)
-    )
-    second_response = second_response[:2000]  # Limit to 2000 characters
-
-    await command_channel.send(second_response)
-
-    exception_stats = defaultdict(int)
-    # If dry_run is False, remove the roles
-    for user_id in users_with_wf_role_removed:
-        member: h.Member = guild.get_member(user_id)
-        if member and wf_role not in await member.fetch_roles():
-            if not dry_run:
-                try:
-                    await member.add_role(wf_role)
-                except Exception as e:
-                    exception_stats[type(e)] += 1
-                    logging.exception(e)
-
-    await command_channel.send(
-        "\n".join([f"{k}: {exception_stats[k]}" for k in exception_stats])
-        if exception_stats
-        else "No exceptions! All good!"
-    )
-    print("Warframe role fix command completed.")
 
 
 @bot.listen()
