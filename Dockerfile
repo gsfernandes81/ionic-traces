@@ -50,7 +50,6 @@ RUN poetry build
 FROM dependencies AS final
 
 COPY --from=builder /app/dist/*.whl .
-COPY Procfile ./
 
 # Install only the application wheel (dependencies are already in the base layer)
 RUN pip install --no-cache-dir *.whl
@@ -63,5 +62,5 @@ CMD ["python", "-OO", "-m", "ionic"]
 FROM final AS web
 CMD ["python", "-OO", "-m", "ionic.web"]
 
-FROM final as schemas-recreate
+FROM final AS schemas-recreate
 CMD ["python", "-OO", "-m", "ionic.schemas"]
