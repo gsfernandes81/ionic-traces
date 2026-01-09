@@ -15,16 +15,15 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1
 
 # Stage 3: Exporter (Generates requirements.txt)
-# Uses uv to export dependencies from uv.lock to requirements.txt
 FROM uv-helper AS exporter
 
 COPY pyproject.toml uv.lock ./
 
-# Export production dependencies, excluding dev and hashes
-RUN uv export --no-dev --no-hashes --format=requirements-txt --output-file=requirements.txt
+# FIXED: Added --no-emit-project so the requirements.txt ONLY contains
+# third-party dependencies, not the local app itself.
+RUN uv export --no-dev --no-hashes --no-emit-project --format=requirements-txt --output-file=requirements.txt
 
 # Stage 4: Dependencies (The CACHED Layer)
-# Installs libraries using standard pip to keep the layer "clean" (no uv binary)
 FROM base AS dependencies
 
 COPY --from=exporter /app/requirements.txt .
@@ -33,14 +32,13 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-# We use standard pip here so the final image doesn't need uv
+# Now this only installs third-party libs, so it won't fail looking for source code
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Stage 5: Builder (Builds your application wheel)
 FROM uv-helper AS builder
 
 COPY . .
-# Builds the wheel and sdist into /app/dist/
 RUN uv build
 
 # Stage 6: Final Base (Combines cached deps + app code)
