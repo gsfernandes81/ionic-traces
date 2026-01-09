@@ -1,1 +1,0 @@
-release: python -OO -m ionic --release
