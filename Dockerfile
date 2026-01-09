@@ -1,7 +1,8 @@
 # Stage 1: Base (System dependencies)
 FROM python:3.12-alpine AS base
 
-RUN apk update && apk add --no-cache git gcc g++ libffi-dev
+RUN apk update && apk add --no-cache git gcc g++ libffi-dev tzdata
+ENV TZ=Etc/UTC
 
 WORKDIR /app
 
