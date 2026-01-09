@@ -2,11 +2,10 @@ name: ionic
 services:
   mysql-ionic:
     container_name: mysql-ionic
-    image: mysql:oraclelinux9
+    image: mysql:8
     ports:
       - "3306:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=ionic
     env_file:
       - .env
