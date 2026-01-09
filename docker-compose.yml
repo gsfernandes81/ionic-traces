@@ -3,8 +3,6 @@ services:
   mysql-ionic:
     container_name: mysql-ionic
     image: mysql:8
-    ports:
-      - "3306:3306"
     environment:
       - MYSQL_DATABASE=ionic
     env_file:
