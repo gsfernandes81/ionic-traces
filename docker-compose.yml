@@ -3,6 +3,7 @@ services:
   mysql-ionic:
     container_name: mysql-ionic
     image: mysql:8
+    restart: always
     expose:
       - "3306"
     environment:
@@ -14,6 +15,7 @@ services:
 
   bot:
     container_name: bot
+    restart: always
     build:
       context: ./
       target: bot
@@ -26,6 +28,7 @@ services:
 
   web:
     container_name: web
+    restart: always
     build:
       context: ./
       target: web
