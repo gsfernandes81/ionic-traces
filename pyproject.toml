@@ -27,6 +27,7 @@ emoji = "^2.8.0"
 aiodebug = "^2.3.0"
 werkzeug = "^3.0.3"
 python-dotenv = "^1.2.1"
+cryptography = "^46.0.3"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.4"
