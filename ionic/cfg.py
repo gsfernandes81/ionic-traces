@@ -2,7 +2,10 @@ import datetime as dt
 import ssl
 from os import getenv as _getenv
 
+from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
+
+load_dotenv()
 
 # Discord API Token
 discord_token = _getenv("DISCORD_TOKEN")

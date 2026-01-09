@@ -16,11 +16,12 @@
 import argparse
 import asyncio
 import datetime as dt
+import functools
 import random
+import signal
 import sys
 from typing import List, Union
 
-import aiodebug.log_slow_callbacks
 import dateparser
 import emoji
 import hikari as h
@@ -29,7 +30,6 @@ import regex as re
 import sqlalchemy as sql
 import uvloop
 from arrow import Arrow
-from dd.anchor import posts
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import delete, select
@@ -38,8 +38,6 @@ from . import cfg
 from .bot import SpecialFeaturesBot
 from .cfg import REGISTRATION_TIMEOUT
 from .schemas import Base, User
-
-aiodebug.log_slow_callbacks.enable(0.05)
 
 db_engine = create_async_engine(cfg.db_url_async, connect_args=cfg.db_connect_args)
 db_session = sessionmaker(db_engine, **cfg.db_session_kwargs)
@@ -74,10 +72,21 @@ async def update_status(guild_count: int):
     )
 
 
+def ask_exit(signame, loop):
+    print("got signal %s: exit" % signame)
+    loop.stop()
+
+
 @bot.listen()
 async def on_start(event: lb.LightbulbStartedEvent):
     bot.d.guild_count = len(await bot.rest.fetch_my_guilds())
     await update_status(bot.d.guild_count)
+    loop = asyncio.get_running_loop()
+
+    for signame in {"SIGINT", "SIGTERM"}:
+        loop.add_signal_handler(
+            getattr(signal, signame), functools.partial(ask_exit, signame, loop)
+        )
 
 
 @bot.listen()
@@ -855,9 +864,5 @@ if __name__ == "__main__":
         # None as of now
 
         # If running an already deployed release, start the discord client
-
-    posts.cfg.kyber_discord_server_id = 827787254763618304
-    posts.cfg.control_discord_server_id = 1318291785130311773
-    posts.register(bot)
 
     main()

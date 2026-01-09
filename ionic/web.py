@@ -13,7 +13,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import select
 
 from . import cfg
-from .cfg import REGISTRATION_TIMEOUT
 from .schemas import User
 
 config = Config()
@@ -79,7 +78,7 @@ async def receive_timezone():
                 # has requested registration
                 quart.abort(401)
             user = user[0]
-            if dt.datetime.now() - user.update_dt > REGISTRATION_TIMEOUT:
+            if dt.datetime.now() - user.update_dt > cfg.REGISTRATION_TIMEOUT:
                 quart.abort(401)
             user.tz = timezone
     return jsonify(success=True)
