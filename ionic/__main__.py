@@ -48,7 +48,7 @@ rgx_dt_markers = re.compile(
     "(?!<(@|!|#|@!|@&)[0-9]+>|<a{0,1}:[a-zA-Z0-9_.]{2,32}:[0-9]+>|<t:[0-9]+:[a-zA-Z]{0,1}>)(<[^>]+>)"
 )
 # Regex get user from string with discord @user and nothing else
-rgx_d_user = re.compile("^<@(\d+)>$")
+rgx_d_user = re.compile("^<@(\\d+)>$")
 
 
 # Bot subclass with convenience functions built in
@@ -597,12 +597,12 @@ async def sh(ctx: lb.Context):
 async def on_lb_start(event: lb.LightbulbStartedEvent):
     # Pizza setup
     bot.react_to_guild_messages(
-        trigger_regex=re.compile("(pizza(?![_\s\-,:;'\/\\\+]*milk)|🍕)", re.IGNORECASE),
+        trigger_regex=re.compile("(pizza|🍕)", re.IGNORECASE),
         reaction="🍕",
         allowed_servers=cfg.pizza_servers,
     )
     bot.react_to_guild_reactions(
-        trigger_regex=re.compile("(pizza(?![_\s\-,:;'\/\\\+]*milk)|🍕)", re.IGNORECASE),
+        trigger_regex=re.compile("^(pizza|🍕)$", re.IGNORECASE),
         allowed_servers=cfg.pizza_servers,
     )
 
