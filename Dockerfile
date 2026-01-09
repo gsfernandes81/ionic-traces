@@ -62,3 +62,6 @@ CMD ["python", "-OO", "-m", "ionic"]
 
 FROM final AS web
 CMD ["python", "-OO", "-m", "ionic.web"]
+
+FROM final as schemas-recreate
+CMD ["python", "-OO", "-m", "ionic.schemas"]
