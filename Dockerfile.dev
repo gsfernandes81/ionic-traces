@@ -1,0 +1,111 @@
+# syntax=docker/dockerfile:1
+
+# ionic-dev — a dev container for this repo, a THIN CHILD of gsrpi-dev-base. Everything it
+# shares with the other dev containers on zero (the toolchain, Claude Code, gh, zmx, fish,
+# sshd, the `dev` user, every dotfile and the entrypoint that starts the lot) lives in the
+# owner's infra repo, `dev/Dockerfile.base`, and is pulled, not rebuilt. What is left here
+# is what makes this image this project's: a compiler, Python 3.12, and the venv.
+#
+# THIS IS NOT THE PRODUCTION IMAGE. That is `Dockerfile` beside this one (Alpine, pip, the
+# bot/web targets), deployed by `docker-compose.yml`; this file changes neither, and they
+# change nothing here.
+#
+# WHO BUILDS THIS: infra. ionic-dev is one service in infra's dev Compose project
+# (`dev/compose.yaml`, service `ionic-dev`), which builds this file straight from this repo's
+# `main` on GitHub and passes BASE_TAG. So a change here reaches the container only once it
+# is on `main` and infra rebuilds it, and the ARG default below is only a fallback for a
+# build outside infra. The container's name, volumes and environment are that service's.
+#
+# NO DATABASE. The bot and the web server need MySQL (MYSQL_URL in a .env, read by
+# ionic/cfg.py), and none comes with this image: services are infra's to add. The container
+# comes up and syncs without one. Never point it at the production database.
+#
+# PINNED TAG, never `latest`: a base rebuild must not change this container until infra's
+# tag moves.
+ARG BASE_TAG=2026.10.26
+FROM ghcr.io/gsfernandes81/gsrpi-dev-base:${BASE_TAG}
+
+# Re-declared, because an ARG stated before FROM is out of scope after it. Recorded as a
+# label so which base a running container is on can be read off it with `docker inspect`.
+ARG BASE_TAG
+LABEL uk.gsrpi.base-tag="${BASE_TAG}"
+
+# The base ends as the dev user; everything below writes system paths until USER dev.
+USER root
+
+# build-essential because asyncmy (the MySQL driver) publishes no aarch64 wheel for 3.12,
+# and zero is a Pi 5: there it is built from its sdist, a Cython extension. Every other
+# locked package has a wheel for both arches. No MySQL client library is needed — asyncmy
+# speaks the protocol itself.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# PYTHON 3.12, NOT THE BASE'S 3.13. pyproject.toml pins `~=3.12.0` and the production image
+# is python:3.12-alpine, so dev runs the same minor version prod does. Debian trixie packages
+# only 3.13, so 3.12 is a uv-managed interpreter, installed once here into /opt/uv-python —
+# root-owned and world-readable, outside $HOME and outside every volume, so it is part of
+# the image like the base's own python. --no-bin: nothing needs a `python3.12` on PATH,
+# the venv's `python` is the one used.
+#
+# UV_PYTHON_INSTALL_DIR stays set for the container's life so uv still FINDS this
+# interpreter later — a `uv sync` that has to remake the venv picks it by requires-python.
+# Downloads are switched off only after this install, below: from then on uv may use
+# what is here and never fetch another at start or in a session.
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
+RUN uv python install 3.12 --no-bin \
+    && rm -rf /root/.cache/uv
+
+# TZ, CLAUDE_CONFIG_DIR, GH_CONFIG_DIR, HISTFILE and SCREENDIR are set in the base and not
+# repeated here. The venv lives OUTSIDE /workspace so the workspace volume cannot shadow
+# it; VIRTUAL_ENV mirrors UV_PROJECT_ENVIRONMENT so ty and ruff find it. PATH is set in the
+# image so `docker exec` and an ssh session answer `python` the same way (the base publishes
+# its PATH into ~/.ssh/environment).
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0 \
+    UV_PROJECT_ENVIRONMENT=/home/dev/venv \
+    VIRTUAL_ENV=/home/dev/venv \
+    PATH=/home/dev/venv/bin:$PATH
+
+# Pre-build the dependency set into /home/dev/venv: the runtime dependencies and the `dev`
+# group (uv's default). The editable project is added at container start by child-init.sh,
+# once /workspace holds the clone. KEEP THE FLAGS IN SYNC with docker-child-init.dev.sh —
+# a start that syncs with fewer would uninstall what the build put there.
+#
+# The lockfile is synced from a scratch directory, not /workspace: an image that leaves
+# files in /workspace has them copied into the empty workspace volume on first start,
+# and the entrypoint then has to work out whose they are before it can clone.
+#
+# RUN AS ROOT AND CHOWNED: a BuildKit cache mount is created root-owned and takes a numeric
+# uid to be anything else, so the sync runs as root and the venv is handed to dev in the
+# same layer. The last line refuses an image whose venv is not 3.12, or whose compiled
+# driver did not build.
+COPY pyproject.toml uv.lock /tmp/ionic-lock/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /tmp/ionic-lock \
+    && UV_CACHE_DIR=/root/.cache/uv uv sync --frozen --no-install-project \
+    && rm -rf /tmp/ionic-lock \
+    && chown -R dev:dev /home/dev/venv \
+    && /home/dev/venv/bin/python -c 'import sys, asyncmy, uvloop; assert sys.version_info[:2] == (3, 12), sys.version'
+
+USER dev
+
+# The uv cache's mountpoint (infra mounts ionic-uv-cache here). A volume that is empty on
+# first use takes the ownership of the directory it covers, so it is made here, as dev.
+RUN mkdir -p /home/dev/.cache/uv
+
+# ── the seams ───────────────────────────────────────────────────────────────
+# No ssh_config and no known_hosts.extra: this container reaches nothing over ssh (GitHub is
+# the hub's token, over https), so the base's own ssh_config is the whole of it.
+
+# The login walkthrough — the hub's token, Claude, the clone. infra's
+# `make login C=ionic-dev` runs it.
+COPY --chown=dev:dev docker-login.dev.sh /home/dev/login.sh
+
+# What this image does at start that the base cannot know about: the venv.
+COPY --chown=dev:dev docker-child-init.dev.sh /home/dev/child-init.sh
+
+# WORKDIR, EXPOSE and CMD are inherited.

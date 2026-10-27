@@ -1,0 +1,21 @@
+# Build-context excludes for Dockerfile.dev ONLY — BuildKit reads <Dockerfile>.dockerignore
+# in place of .dockerignore, so the production image's .dockerignore is left as it is.
+# The dev image COPYs pyproject.toml, uv.lock and the two dev scripts; the source arrives
+# at runtime as a clone in the /workspace volume. So this keeps a local build's context
+# small and secrets out of it. (infra builds from this repo's git URL, whose context is
+# the tracked tree only.)
+
+.git
+.venv
+.vscode/
+
+**/__pycache__
+*.pyc
+*.swp
+*.swo
+.ruff_cache
+.ropeproject
+
+# Secrets and data, as .dockerignore keeps them out of the production build.
+.env*
+*.sql
